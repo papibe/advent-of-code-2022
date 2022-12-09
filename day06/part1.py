@@ -1,7 +1,7 @@
 from typing import Dict
 
 
-def solution(filename: str) -> str:
+def solution(filename: str, packet_size: int) -> str:
     with open(filename, "r") as fp:
         datastream: str = fp.read()
 
@@ -10,7 +10,7 @@ def solution(filename: str) -> str:
     seen_char: Dict[str, int] = {}
     seen_pos: Dict[int, str] = {}
 
-    while current < len(datastream) and (current - start + 1) < 4:
+    while current < len(datastream) and (current - start + 1) < packet_size:
         current += 1
         char = datastream[current]
 
@@ -32,20 +32,20 @@ def solution(filename: str) -> str:
 
 
 if __name__ == "__main__":
-    result: int = solution("./data/example1.txt")
+    result: int = solution("./data/example1.txt", 4)
     print(result)  # it should be 7
 
-    result: int = solution("./data/example2.txt")
+    result: int = solution("./data/example2.txt", 4)
     print(result)  # it should be 5
 
-    result: int = solution("./data/example3.txt")
+    result: int = solution("./data/example3.txt", 4)
     print(result)  # it should be 6
 
-    result: int = solution("./data/example4.txt")
+    result: int = solution("./data/example4.txt", 4)
     print(result)  # it should be 10
 
-    result: int = solution("./data/example5.txt")
+    result: int = solution("./data/example5.txt", 4)
     print(result)  # it should be 11
 
-    result: int = solution("./data/input.txt")
+    result: int = solution("./data/input.txt", 4)
     print(result)

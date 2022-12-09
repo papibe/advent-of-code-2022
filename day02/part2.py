@@ -1,3 +1,5 @@
+from typing import List
+
 ROCK, PAPER, SCISSORS = "A", "B", "C"
 
 # strategy translation
@@ -19,7 +21,7 @@ match_result_value = {
 
 def solution(filename: str) -> int:
     with open(filename, "r") as fp:
-        plays: str = fp.read().splitlines()
+        plays: List[str] = fp.read().splitlines()
 
     points: int = 0
     for play in plays:

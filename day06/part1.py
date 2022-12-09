@@ -8,7 +8,6 @@ def solution(filename: str, packet_size: int) -> str:
     start: int = 0
     current: int = -1
     seen_char: Dict[str, int] = {}
-    seen_pos: Dict[int, str] = {}
 
     while current < len(datastream) and (current - start + 1) < packet_size:
         current += 1
@@ -16,16 +15,13 @@ def solution(filename: str, packet_size: int) -> str:
 
         if char not in seen_char:
             seen_char[char] = current
-            seen_pos[current] = char
         else:
             # reseting start position and cleaning seen dicts
             new_start = seen_char[char] + 1
             for i in range(start, new_start):
-                del seen_char[seen_pos[i]]
-                del seen_pos[i]
+                del seen_char[datastream[i]]
 
             seen_char[char] = current
-            seen_pos[current] = char
             start = new_start
 
     return current + 1

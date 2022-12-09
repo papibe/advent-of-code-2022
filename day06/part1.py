@@ -31,17 +31,17 @@ if __name__ == "__main__":
     result: int = solution("./data/example1.txt", 4)
     print(result)  # it should be 7
 
-    result: int = solution("./data/example2.txt", 4)
+    result = solution("./data/example2.txt", 4)
     print(result)  # it should be 5
 
-    result: int = solution("./data/example3.txt", 4)
+    result = solution("./data/example3.txt", 4)
     print(result)  # it should be 6
 
-    result: int = solution("./data/example4.txt", 4)
+    result = solution("./data/example4.txt", 4)
     print(result)  # it should be 10
 
-    result: int = solution("./data/example5.txt", 4)
+    result = solution("./data/example5.txt", 4)
     print(result)  # it should be 11
 
-    result: int = solution("./data/input.txt", 4)
+    result = solution("./data/input.txt", 4)
     print(result)

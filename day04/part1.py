@@ -27,5 +27,5 @@ if __name__ == "__main__":
     result: int = solution("./example.txt")
     print(result)  # it should be 2
 
-    result: int = solution("./input.txt")
+    result = solution("./input.txt")
     print(result)

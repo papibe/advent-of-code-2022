@@ -1,5 +1,5 @@
 import re
-from typing import List, Set, Tuple, Dict
+from typing import List, Dict
 
 
 class Monkey:
@@ -20,7 +20,7 @@ class Monkey:
         self.false_monkey: int = false_monkey
 
     @staticmethod
-    def parse_and_create_monkey(monkey_data: List[str]):
+    def parse_and_create_monkey(monkey_data: List[str]) -> "Monkey":
         regex = (
             r"Monkey (\d+):\n  Starting items: (.*)\n"
             r"  Operation: new = (\w+) (\W) (\w+)\n"
@@ -28,8 +28,7 @@ class Monkey:
             r"    If true: throw to monkey (\d+)\n"
             r"    If false: throw to monkey (\d+)"
         )
-        
-        expr = re.search(regex, monkey_data, re.MULTILINE)
+        expr = re.match(regex, monkey_data, re.MULTILINE)
         monkey_id: str = expr.group(1)
         items: str = expr.group(2)
         op1: List[str] = expr.group(3)
@@ -49,58 +48,38 @@ class Monkey:
         )
 
     def new_worry_level(self, item: int) -> int:
-        operand1 = self.operation[0]  # old
-        operator = self.operation[1]  # '+' or '*'
-        operand2 = self.operation[2]  # old or a number
+        _, operator, str_operand = self.operation  # _ is always old == item
 
-        if operand2.isnumeric():
-            operand2 = int(operand2)
-        else:
-            operand2 = item
-
-        if operator == "+":
-            return item + operand2
-        if operator == "*":
-            return item * operand2
-
-    def __str__(self) -> str:
-        return f"{self.id = }, {self.items = } {self.operation} {self.test_divisible = } {self.true_monkey = } {self.false_monkey = }"
+        operand: int = int(str_operand) if str_operand.isnumeric() else item
+        return item + operand if operator == "+" else item * operand
 
 
 def solution(filename: str) -> int:
     with open(filename, "r") as fp:
         data: str = fp.read()
-
     monkeys_raw_data: List[str] = data.split("\n\n")
+
+    # create game objects
     monkeys: Dict[int, Monkey] = {}
     monkey_inspection: Dict[int, int] = {}
     for monkey_id, monkey_data in enumerate(monkeys_raw_data):
         monkeys[monkey_id] = Monkey.parse_and_create_monkey(monkey_data)
         monkey_inspection[monkey_id] = 0
 
-    for game_round in range(1, 21):
+    # play game
+    for _ in range(1, 21):
         for id, monkey in monkeys.items():
             while monkey.items:
                 monkey_inspection[id] += 1
                 item = monkey.items.pop()
+
                 item = monkey.new_worry_level(item) // 3
                 if item % monkey.test_divisible == 0:
                     monkeys[monkey.true_monkey].items.append(item)
                 else:
                     monkeys[monkey.false_monkey].items.append(item)
 
-
-    print(f"{game_round = }")
-    for id, monkey in monkeys.items():
-        print(id, monkey.items)
-    print("----------------------------")
-
-    for monkey_id, inspected in monkey_inspection.items():
-        print(f"Monkey {monkey_id} inspected items {inspected} times")
-
     sort_inspected = sorted(monkey_inspection.values(), reverse=True)
-    print(sort_inspected)
-
     return sort_inspected[0] * sort_inspected[1]
 
 

@@ -12,7 +12,6 @@ def is_at_most_one_higher(neighbor: Tuple, current: Tuple, grid) -> bool:
     current_char: str = grid[c_row][c_col]
 
     return (ord(neighbor_char) - ord(current_char)) <= 1
-    # return (ord(neighbor_char) - ord(current_char)) > 1
 
 
 def neighbors(
@@ -40,46 +39,32 @@ def solution(filename: str) -> int:
     for line in raw_data.splitlines():
         grid.append([char for char in line])
 
-    # for row in grid:
-    #     for item in row:
-    #         print(item, end="")
-    #     print()
-
     for i, row in enumerate(grid):
         for j, elevation in enumerate(row):
             if elevation == START:
                 start: tuple[str, str] = (i, j)
-        #         break
-        # else:
-        #     continue
-        # break
-
-    print(start)
 
     # patch start point
     grid[start[0]][start[1]] = "z"
 
-    # BFS for shortest path
+    # BFS for shortest path ----------------------------------------------------
 
-    # initialization
+    # BFS initialization
     max_rows: int = len(grid)
     max_cols: int = len(grid[0])
     queue: Deque = deque()
     queue.append((start, []))
-    print(queue)
     visited: Set[Tuple[int, int]] = {start}
 
-    # main traverse
+    # main BFS traverse
     while queue:
         current, path = queue.popleft()
-        # print(f"{current = }, {grid[current[0]][current[1]] = }, {path = }")
         if grid[current[0]][current[1]] == END:
-            print("We arrived")
             final_path = path
             break
         for neighbor in neighbors(current, max_rows, max_cols):
             if neighbor not in visited and is_at_most_one_higher(
-                current, neighbor, grid
+                current, neighbor, grid  # diff arguments order for part2
             ):
                 new_path = path[:]
                 new_path.append(neighbor)

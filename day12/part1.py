@@ -39,45 +39,30 @@ def solution(filename: str) -> int:
     for line in raw_data.splitlines():
         grid.append([char for char in line])
 
-    # for row in grid:
-    #     for item in row:
-    #         print(item, end="")
-    #     print()
-
     for i, row in enumerate(grid):
         for j, elevation in enumerate(row):
             if elevation == START:
                 start: tuple[str, str] = (i, j)
             elif elevation == END:
                 end: tuple[str, str] = (i, j)
-        #         break
-        # else:
-        #     continue
-        # break
-
-    print(start)
-    print(end)
 
     # patch start point
     grid[start[0]][start[1]] = "a"
     grid[end[0]][end[1]] = "z"
 
-    # BFS for shortest path
+    # BFS for shortest path ----------------------------------------------------
 
-    # initialization
+    # BFS initialization
     max_rows: int = len(grid)
     max_cols: int = len(grid[0])
     queue: Deque = deque()
     queue.append((start, []))
-    print(queue)
     visited: Set[Tuple[int, int]] = {start}
 
-    # main traverse
+    # main BFS traverse
     while queue:
         current, path = queue.popleft()
-        # print(f"{current = }, {path = }")
         if current == end:
-            print("We arrived")
             final_path = path
             break
         for neighbor in neighbors(current, max_rows, max_cols):

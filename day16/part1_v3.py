@@ -83,7 +83,6 @@ def solve(valves: Dict[str, Valve]) -> int:
                     (minute, neighbor, old_pressure, old_opened, new_history, new_path)
                 )
 
-
     return max_pressure
 
 

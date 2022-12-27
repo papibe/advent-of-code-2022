@@ -66,7 +66,6 @@ def solve(valves: Dict[str, Valve]) -> int:
             current_pressure += valves[valve].flow * (30 - minute)
             new_opened = opened.copy()
             new_opened.add(valve)
-            opened = new_opened
 
             # print(minute, valve, current_pressure, f"{valve} opened")
 
@@ -74,7 +73,7 @@ def solve(valves: Dict[str, Valve]) -> int:
             for neighbor in valves[valve].neighbors:
                 if neighbor not in history or current_pressure > history[neighbor]:
                     history[neighbor] = current_pressure
-                    queue.append((minute, neighbor, current_pressure, opened))
+                    queue.append((minute, neighbor, current_pressure, new_opened))
 
     return max_pressure
 

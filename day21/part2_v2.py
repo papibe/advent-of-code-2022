@@ -30,6 +30,8 @@ class TreeNode:
         self.left_child: "TreeNode" = None
         self.right_child: "TreeNode" = None
 
+        self.calculated_value: int = value if value is not None else None
+
 
 def parse(filename: str) -> Dict[str, TreeNode]:
     with open(filename, "r") as fp:
@@ -48,7 +50,6 @@ def parse(filename: str) -> Dict[str, TreeNode]:
             monkey_name: str = match_number_expr.group(1)
             yelled_value: int = int(match_number_expr.group(2))
             node: TreeNode = TreeNode(monkey_name=monkey_name, value=yelled_value)
-            # print("number line:\t", line)
 
         if match_math_expr:
             monkey_name: str = match_math_expr.group(1)
@@ -61,9 +62,13 @@ def parse(filename: str) -> Dict[str, TreeNode]:
                 operation=operation,
                 monkey_oper2=monkey_oper2,
             )
-            # print("math operation:\t", line)
 
         monkey_registry[monkey_name] = node
+
+    # patching for part2
+    monkey_registry["root"].operation = "="  # patch operation on root node
+    monkey_registry["humn"].value = None
+    monkey_registry["humn"].calculated_value = None
 
     return monkey_registry
 
@@ -78,9 +83,18 @@ def form_expression_tree(
     return node
 
 
+def eval_operation(left_value: int, operation: str, right_value: int) -> int:
+    if operation == "+":
+        return left_value + right_value
+    if operation == "-":
+        return left_value - right_value
+    if operation == "*":
+        return left_value * right_value
+    if operation == "/":
+        return left_value // right_value  # regular '/' works too
+
+
 def eval_tree(node: TreeNode) -> int:
-    if node.monkey_name == "humn":
-        return None
     if node.type == NodeType.value:
         return node.value
 
@@ -88,16 +102,11 @@ def eval_tree(node: TreeNode) -> int:
     right_value: int = eval_tree(node.right_child)
 
     if left_value is None or right_value is None:
-        return None
+        node.calculated_value = None
+    else:
+        node.calculated_value = eval_operation(left_value, node.operation, right_value)
 
-    if node.operation == "+":
-        return left_value + right_value
-    if node.operation == "-":
-        return left_value - right_value
-    if node.operation == "*":
-        return left_value * right_value
-    if node.operation == "/":
-        return left_value // right_value  # regular '/' works too
+    return node.calculated_value
 
 
 def solve(monkey_registry: Dict[str, TreeNode], goal_value: int, node: TreeNode) -> int:
@@ -107,8 +116,8 @@ def solve(monkey_registry: Dict[str, TreeNode], goal_value: int, node: TreeNode)
     if node.type == NodeType.value:
         return node.value
 
-    left_value: int = eval_tree(node.left_child)
-    right_value: int = eval_tree(node.right_child)
+    left_value: int = node.left_child.calculated_value
+    right_value: int = node.right_child.calculated_value
 
     if left_value is None:
 
@@ -123,6 +132,8 @@ def solve(monkey_registry: Dict[str, TreeNode], goal_value: int, node: TreeNode)
             new_goal_value = goal_value // right_value
         if node.operation == "/":
             new_goal_value = goal_value * right_value
+        if node.operation == "=":
+            new_goal_value = goal_value
 
         return solve(monkey_registry, new_goal_value, target_tree)
 
@@ -138,36 +149,24 @@ def solve(monkey_registry: Dict[str, TreeNode], goal_value: int, node: TreeNode)
             new_goal_value = goal_value // left_value
         if node.operation == "/":
             new_goal_value = left_value // goal_value
+        if node.operation == "=":
+            new_goal_value = goal_value
 
         return solve(monkey_registry, new_goal_value, target_tree)
 
-    if node.operation == "+":
-        return left_value + right_value
-    if node.operation == "-":
-        return left_value - right_value
-    if node.operation == "*":
-        return left_value * right_value
-    if node.operation == "/":
-        return left_value // right_value  # regular '/' works too
+    return eval_operation(left_value, node.operation, right_value)
 
 
 def solution(filename: str):
     monkey_registry: Dict[str, TreeNode] = parse(filename)
     tree: TreeNode = form_expression_tree(monkey_registry, "root")
 
-    left_value = eval_tree(monkey_registry["root"].left_child)
-    right_value = eval_tree(monkey_registry["root"].right_child)
+    eval_tree(tree)
 
-    if left_value is not None:
-        goal_value: int = left_value
-        target_tree: TreeNode = monkey_registry["root"].right_child
-    elif right_value is not None:
-        goal_value: int = right_value
-        target_tree: TreeNode = monkey_registry["root"].left_child
-    else:
-        print("PROBLEM!!")
-
-    return solve(monkey_registry, goal_value, target_tree)
+    goal_value: int = (
+        tree.left_child.calculated_value or tree.right_child.calculated_value
+    )
+    return solve(monkey_registry, goal_value, tree)
 
 
 if __name__ == "__main__":

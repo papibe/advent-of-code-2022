@@ -83,7 +83,7 @@ def solution(filename: str) -> int:
             valves, valve_index, bitmask, memo, 26
         )
         player1_preassure: int = solve(
-            valves, valve_index, bitmask ^ 0xFFFF, memo, 26
+            valves, valve_index, bitmask ^ times, memo, 26
         )
 
         max_team_preassure = max(
@@ -98,4 +98,4 @@ if __name__ == "__main__":
     print(result)
 
     result = solution("./input.txt")
-    print(result)   # ~ 6m20s
+    print(result)   # ~ 3m20s

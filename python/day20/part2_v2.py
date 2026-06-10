@@ -95,7 +95,7 @@ def solve(zero: Node, coordinates: List[Node]) -> int:
             # for _ in range(abs(cycle)):
             for _ in range(abs(node.value % -(len(coordinates) - 1))):
 
-            # for _ in range(abs(node.value)):
+                # for _ in range(abs(node.value)):
                 next_node: Node = node.next
                 previous_node: Node = node.prev
                 back_node: Node = previous_node.prev
@@ -143,6 +143,7 @@ def solution(filename: str, decryption_key: int) -> int:
         result = solve(zero, coordinates)
 
     return result
+
 
 if __name__ == "__main__":
     # print(solution("./example.txt", 811589153))  # it should be 3

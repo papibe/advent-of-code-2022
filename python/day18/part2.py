@@ -1,14 +1,17 @@
-from typing import List, Tuple, Dict, Set
+from collections import deque
+from typing import List, Tuple, Dict, Set, Union, Deque
+
+Point = Tuple[int, int, int]
 
 
-def parse(filename: str) -> List[Tuple[int, int, int]]:
+def parse(filename: str) -> List[Point]:
     with open(filename) as fp:
         data: List[str] = fp.read().splitlines()
 
     return [tuple(map(int, coords.split(","))) for coords in data]
 
 
-def neighbors(coord: Tuple[int, int, int]) -> List[Tuple[int, int, int]]:
+def neighbors(coord: Point) -> List[Point]:
     x, y, z = coord
     neighbors: List = [
         (x, y - 0.5, z),  # lower
@@ -21,19 +24,66 @@ def neighbors(coord: Tuple[int, int, int]) -> List[Tuple[int, int, int]]:
     return neighbors
 
 
-def solve(cubes: List[Tuple[int, int, int]]) -> int:
+def sneighbors(coord: Point) -> List[Point]:
+    x, y, z = coord
+    neighbors: List = [
+        (x, y - 1, z),  # lower
+        (x, y + 1, z),  # upper
+        (x - 1, y, z),  # left
+        (x + 1, y, z),  # right
+        (x, y, z + 1),  # front
+        (x, y, z - 1),  # back
+    ]
+    return neighbors
+
+
+def is_external(
+    surface: Point, surfaces: List[Point], min_point: Point, max_point: Point
+) -> bool:
+    # queue: Deque = deque([surface])
+    queue: Deque = deque()
+    queue.append(surface)
+    visited: Set = {surface}
+
+    # print(queue, visited)
+
+    while queue:
+        face: Point = queue.popleft()
+
+        if face in surfaces:
+            # print(face, "on surfaces")
+            continue
+
+        if (
+            face[0] < min_point[0]
+            or face[1] < min_point[1]
+            or face[2] < min_point[2]
+            or face[0] > max_point[0]
+            or face[1] > max_point[1]
+            or face[2] > max_point[2]
+        ):
+            # print(face, "is out")
+            return True
+
+        for neighbor in sneighbors(face):
+            if neighbor not in visited:
+                queue.append(neighbor)
+                visited.add(neighbor)
+
+    # print(surface, "is internal")
+    return False
+
+
+def solve(cubes: List[Point]) -> int:
     surfaces: Set = set()
-    min_x = min_y = min_z = float("inf")
-    max_x = max_y = max_z = float("-inf")
+    min_point = [float("inf"), float("inf"), float("inf")]
+    max_point = [float("-inf"), float("-inf"), float("-inf")]
 
     for cube in cubes:
         x, y, z = cube
-        min_x = min(min_x, x)
-        min_y = min(min_y, y)
-        min_z = min(min_z, z)
-        max_x = max(max_x, x)
-        max_y = max(max_y, y)
-        max_z = max(max_z, z)
+
+        min_point = [min(min_point[0], x), min(min_point[1], y), min(min_point[2], z)]
+        max_point = [max(max_point[0], x), max(max_point[1], y), max(max_point[2], z)]
 
         for neighbor in neighbors(cube):
             if neighbor in surfaces:
@@ -41,81 +91,35 @@ def solve(cubes: List[Tuple[int, int, int]]) -> int:
             else:
                 surfaces.add(neighbor)
 
+    # print(min_point, max_point)
+
     internal_surfaces: Set = set()
-    for x in range(min_x, max_x + 1):
-        for y in range(min_y, max_y + 1):
-            for z in range(min_z, max_z + 1):
-                if (x, y, z) not in cubes:
-                    # print(x, y, z)
-                    outer_surfaces: Set = set()
-                    left_min = (
-                        right_min
-                    ) = top_min = bottom_min = front_min = back_min = float("inf")
-                    for sx, sy, sz in surfaces:
-                        # x plane
-                        if y == sy and z == sz and sx > x:
-                            outer_surfaces.add("left")
-                            if abs(sx - x) < left_min:
-                                min_left_surface = (sx, sy, sz)
-                                left_min = abs(sx - x)
+    for surface in surfaces:
+        for neighbor in sneighbors(surface):
+            if is_external(neighbor, surfaces, min_point, max_point):
+                break
+        else:
+            internal_surfaces.add(surface)
 
-                        if y == sy and z == sz and sx < x:
-                            outer_surfaces.add("right")
-                            if abs(sx - x) < right_min:
-                                min_right_surface = (sx, sy, sz)
-                                right_min = abs(sx - x)
-
-                        # y plane
-                        if x == sx and z == sz and sy > y:
-                            outer_surfaces.add("top")
-                            if abs(sy - y) < top_min:
-                                min_top_surface = (sx, sy, sz)
-                                top_min = abs(sy - y)
-
-                        if x == sx and z == sz and sy < y:
-                            outer_surfaces.add("bottom")
-                            if abs(sy - y) < bottom_min:
-                                min_bottom_surface = (sx, sy, sz)
-                                bottom_min = abs(sy - y)
-
-                        # z plane
-                        if x == sx and y == sy and sz > z:
-                            outer_surfaces.add("front")
-                            if abs(sz - z) < front_min:
-                                min_front_surface = (sx, sy, sz)
-                                front_min = abs(sz - z)
-
-                        if x == sx and y == sy and sz < z:
-                            outer_surfaces.add("back")
-                            if abs(sz - z) < back_min:
-                                min_back_surface = (sx, sy, sz)
-                                back_min = abs(sz - z)
-
-                    if len(outer_surfaces) == 6:
-                        internal_surfaces.add(min_left_surface)
-                        internal_surfaces.add(min_right_surface)
-                        internal_surfaces.add(min_top_surface)
-                        internal_surfaces.add(min_bottom_surface)
-                        internal_surfaces.add(min_front_surface)
-                        internal_surfaces.add(min_back_surface)
+    print(len(surfaces), len(internal_surfaces))
 
     return len(surfaces) - len(internal_surfaces)
 
 
 def solution(filename: str) -> int:
-    cubes: List[Tuple[int, int, int]] = parse(filename)
+    cubes: List[Point] = parse(filename)
     return solve(cubes)
 
 
 if __name__ == "__main__":
-    result: int = solution("./example1.txt")
+    result: int = solution("./data/example1.txt")
     print(result)  # it should be 10
 
-    result = solution("./example2.txt")
+    result = solution("./data/example2.txt")
     print(result)  # it should be 58
 
-    result = solution("./example3.txt")
+    result = solution("./data/example3.txt")
     print(result)  # it should be 30
 
-    result = solution("./input.txt")
+    result = solution("./data/input.txt")
     print(result)

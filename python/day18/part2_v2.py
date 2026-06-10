@@ -108,14 +108,14 @@ def solution(filename: str) -> int:
 
 
 if __name__ == "__main__":
-    result: int = solution("./example1.txt")
+    result: int = solution("./data/example1.txt")
     print(result)  # it should be 10
 
-    result = solution("./example2.txt")
+    result = solution("./data/example2.txt")
     print(result)  # it should be 58
 
-    result = solution("./example3.txt")
+    result = solution("./data/example3.txt")
     print(result)  # it should be 30
 
-    result = solution("./input.txt")
+    result = solution("./data/input.txt")
     print(result)

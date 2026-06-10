@@ -156,6 +156,7 @@ def wind_generator(wind_str: List[str]) -> Wind:
         yield Wind.left if wind_str[index] == "<" else Wind.right
         counter += 1
 
+
 # @profile
 def solve(wind_data: List, chamber: Chamber, number_of_rocks: int) -> int:
 
@@ -203,8 +204,5 @@ def solution(filename: str, number_of_rocks: int) -> int:
 
 
 if __name__ == "__main__":
-    result: int = solution("./example.txt", 2022)
-    print(result)
-
-    result = solution("./input.txt", 2022)
-    print(result)
+    print(solution("./example.txt", 2022))
+    print(solution("./input.txt", 2022))

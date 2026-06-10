@@ -179,6 +179,7 @@ def solution(filename: str) -> int:
     minute, state_number = solve(0, (0, 1), (flat.rows - 1, flat.cols - 2), 0, states)
     return minute
 
+
 if __name__ == "__main__":
     print(solution("./example.txt"))
     print(solution("./input.txt"))

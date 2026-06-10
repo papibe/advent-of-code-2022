@@ -40,44 +40,54 @@ def parse(filename: str) -> Dict[str, Valve]:
 
 
 def solve(valves: Dict[str, Valve]) -> int:
-    minute: int = 0
     queue: Deque = deque()
-    queue.append((minute, "AA", 0, set(["AA"])))
+    queue.append((0, "AA", 0, set()))  # minute, valve (position), opened valves
+    # queue.append((0, "AA", 0, {"AA": 0}, set()))  # minute, valve (position), opened valves
 
     max_pressure: int = 0
-    history: Dict[str, int] = {"AA": 0}
+    # history: Dict[str, int] = {"AA": 0}
+
+    history: Dict[str, int] = {valve: -1 for valve in valves}
+    history["AA"] = 0
+    # print(history)
 
     while queue:
         minute, valve, current_pressure, opened = queue.popleft()
-        # print(minute, valve, current_pressure)
+        # print(minute, valve, opened)
 
-        max_pressure = max(max_pressure, current_pressure)
         if minute > 30:
-            # print("reached 30!")
+            print(f"reached last minute {max_pressure = }")
             # break
             continue
-        # if max_pressure == 1880:
-        #     print(opened)
+        max_pressure = max(max_pressure, current_pressure)
 
         # not open valve
         for neighbor in valves[valve].neighbors:
-            if neighbor not in history or current_pressure > history[neighbor]:
+            if current_pressure > history[neighbor]:
+                # new_history: Dict = history.copy()
+                # new_history[neighbor] = current_pressure
                 history[neighbor] = current_pressure
                 queue.append((minute + 1, neighbor, current_pressure, opened))
 
         if valves[valve].flow > 0 and valve not in opened:
-            minute += 1  # open valve
-            current_pressure += valves[valve].flow * (30 - minute)
+            # minute += 1  # open valve
+            current_pressure += valves[valve].flow * (30 - minute - 1)
             new_opened = opened.copy()
             new_opened.add(valve)
 
+            # newer_history: Dict = history.copy()
+            # newer_history[valve] = current_pressure
+            history[valve] = current_pressure
+
+            queue.append((minute + 1, valve, current_pressure, new_opened))
+
             # print(minute, valve, current_pressure, f"{valve} opened")
 
-            minute += 1  # walk to other valve
-            for neighbor in valves[valve].neighbors:
-                if neighbor not in history or current_pressure > history[neighbor]:
-                    history[neighbor] = current_pressure
-                    queue.append((minute, neighbor, current_pressure, new_opened))
+            # minute += 1  # walk to other valve
+            # for neighbor in valves[valve].neighbors:
+            #     if neighbor not in history or current_pressure > history[neighbor]:
+            #         history[neighbor] = current_pressure
+            #         queue.append((minute, neighbor, current_pressure, new_opened))
 
     return max_pressure
 
@@ -91,8 +101,8 @@ def solution(filename: str) -> int:
 
 
 if __name__ == "__main__":
-    result: int = solution("./example.txt")
-    print(result)
+    # result: int = solution("./example.txt")
+    # print(result)
 
     result = solution("./input.txt")
     print(result)

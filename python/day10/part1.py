@@ -33,6 +33,7 @@ def solution(filename: str) -> int:
 
     return signal_strength
 
+
 if __name__ == "__main__":
     result: int = solution("./example.txt")
     print(result)  # it should be 13140

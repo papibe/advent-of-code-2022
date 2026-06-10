@@ -28,7 +28,7 @@ class Monkey:
             r"    If true: throw to monkey (\d+)\n"
             r"    If false: throw to monkey (\d+)"
         )
-        
+
         expr = re.search(regex, monkey_data, re.MULTILINE)
         monkey_id: str = expr.group(1)
         items: str = expr.group(2)
@@ -85,7 +85,7 @@ def solution(filename: str) -> int:
             while monkey.items:
                 monkey_inspection[id] += 1
                 item = monkey.items.pop()
-                item = monkey.new_worry_level(item) # // 3
+                item = monkey.new_worry_level(item)  # // 3
                 reminder = item % monkey.test_divisible
                 if reminder == 0:
                     monkeys[monkey.true_monkey].items.append(0)
@@ -100,7 +100,6 @@ def solution(filename: str) -> int:
     for id, monkey in monkeys.items():
         print(id, monkey.items)
     print("----------------------------")
-
 
     sort_inspected = sorted(monkey_inspection.values(), reverse=True)
     print(sort_inspected)

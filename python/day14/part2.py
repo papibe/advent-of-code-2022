@@ -42,8 +42,7 @@ def solution(filename: str) -> int:
     # print(f"adjusted {min_x = }, {max_x = }")
     # print(f"adjusted {min_y = }, {max_y = }")
 
-
-    drawing_rows = max_y + 1    # sand needs to float from 0
+    drawing_rows = max_y + 1  # sand needs to float from 0
     drawing_cols = max_x - min_x + 1
 
     # print(f"{drawing_rows = }, {drawing_cols = }")
@@ -96,7 +95,11 @@ def solution(filename: str) -> int:
                 continue
 
             # try left down
-            if sand[0] + 1 >= drawing_rows or sand[1] - 1 < 0  or sand[1] - 1 >= drawing_cols:
+            if (
+                sand[0] + 1 >= drawing_rows
+                or sand[1] - 1 < 0
+                or sand[1] - 1 >= drawing_cols
+            ):
                 return rest_counter
 
             if drawing[sand[0] + 1][sand[1] - 1] == AIR:
@@ -106,7 +109,11 @@ def solution(filename: str) -> int:
                 continue
 
             # try right down
-            if sand[0] + 1 >= drawing_rows or sand[1] + 1 < 0 or sand[1] + 1 >= drawing_cols:
+            if (
+                sand[0] + 1 >= drawing_rows
+                or sand[1] + 1 < 0
+                or sand[1] + 1 >= drawing_cols
+            ):
                 return rest_counter
 
             if drawing[sand[0] + 1][sand[1] + 1] == AIR:
@@ -121,7 +128,6 @@ def solution(filename: str) -> int:
                 return rest_counter
 
             break
-
 
             # for line in drawing:
             #     print("".join(line), len(line))

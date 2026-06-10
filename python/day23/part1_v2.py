@@ -95,6 +95,7 @@ def east_lookup(coord: Tuple[int, int]) -> List:
         for step_row, step_col in [(1, 1), (0, 1), (-1, 1)]
     ]
 
+
 def lookup_generator(index: int):
     functions = (
         (north_lookup, south_lookup, west_lookup, east_lookup),
@@ -103,6 +104,7 @@ def lookup_generator(index: int):
         (east_lookup, north_lookup, south_lookup, west_lookup),
     )
     yield functions[index % 4]
+
 
 def round(grove: Set[Tuple[int, int]], index: int) -> Set:
     count_moves: Dict = {}
@@ -132,7 +134,7 @@ def round(grove: Set[Tuple[int, int]], index: int) -> Set:
             continue
 
         if all(nb not in grove for nb in west_lookup(coord)):
-            west_coord = (row, col - 1) 
+            west_coord = (row, col - 1)
             count_moves[west_coord] = count_moves.get(west_coord, 0) + 1
             attempted_moves[coord] = west_coord
             print(row, col, "moving west")

@@ -85,8 +85,6 @@ def solution(filename: str) -> int:
             break
         break
 
-
-
     return 0
 
 

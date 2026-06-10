@@ -115,7 +115,7 @@ def solution(filename: str, row: int) -> int:
 if __name__ == "__main__":
     # for row in range(21):
     #     result: int = solution("./example.txt", row)
-        # print(row, result)  # it should be 26
+    # print(row, result)  # it should be 26
 
     for row in range(4_000_001):
         if row % 10_000 == 0:

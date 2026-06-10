@@ -1,6 +1,6 @@
 from enum import Enum
 from collections import deque
-from typing import FrozenSet, List, Tuple, Iterator, Dict, Set, Deque
+from typing import List, Tuple, Iterator, Dict, Set, Deque
 
 
 _ROCKS = (
@@ -109,26 +109,25 @@ class Chamber:
 
         self.rock = new_rock_position
 
-    # @profile
+    @profile
     def falldown(self):
         new_rock_position: Set = set()
         for (row, col) in self.rock:
             if row - 1 < 1 or (row - 1, col) in self.chamber:
                 self.stabilize()
-                # self.trim()
+                self.trim()
                 return
             new_rock_position.add((row - 1, col))
 
         self.rock = new_rock_position
 
-    def trim(self) -> Set:
+    def trim(self) -> None:
         upper_limit: int = self.size + 1
         start: Tuple = (upper_limit, 0)
         queue: Deque = deque([start])
         visited: Set = {start}
 
         new_chamber: Set = set()
-        min_row: int = float("inf")
 
         while queue:
             row, col = queue.popleft()
@@ -141,15 +140,7 @@ class Chamber:
                         queue.append((row + drow, col + dcol))
                         visited.add((row + drow, col + dcol))
 
-                        min_row = min(min_row, row + drow)
-
         self.chamber = new_chamber
-
-        state: Set = set()
-        for row, col in new_chamber:
-            state.add((row - min_row, col))
-
-        return frozenset(state)
 
     def stabilize(self) -> None:
         max_row: int = float("-inf")
@@ -163,7 +154,7 @@ class Chamber:
         self.size_wit_rock: int = max_row
         self.stable = True
 
-    def gas_push(self, wind: str) -> None:
+    def gas_push(self, wind: int) -> None:
         wind_mapping: Dict = {Wind.left: self._move_left, Wind.right: self._move_right}
         wind_mapping[wind]()
 
@@ -176,7 +167,7 @@ def rock_generator(rocks_data: Tuple[Tuple]) -> Tuple:
     rocks_length: int = len(rocks_data)
     while True:
         index: int = counter % rocks_length
-        yield (index, rocks_data[index])
+        yield rocks_data[index]
         counter += 1
 
 
@@ -185,102 +176,54 @@ def wind_generator(wind_str: List[str]) -> Wind:
     wind_length: int = len(wind_str)
     while True:
         index: int = counter % wind_length
-        wind: Wind = Wind.left if wind_str[index] == "<" else Wind.right
-        yield (index, wind)
+        yield Wind.left if wind_str[index] == "<" else Wind.right
         counter += 1
 
 
-# @profile
-def solve(wind_data: List, chamber: Chamber, number_of_rocks: int) -> int:
+def consolidate(wind1: Wind, wind2: Wind, wind3: Wind) -> Wind:
+    value = {
+        Wind.left: -1,
+        Wind.right: 1,
+    }
+    return value[wind1] + value[wind2] + value[wind3]
 
-    seen_state: Dict = {}
-    min_chamber_state_size: int = float("inf")
-    max_chamber_state_size: int = float("-inf")
+
+@profile
+def solve(wind_data: List, chamber: Chamber, number_of_rocks: int) -> int:
 
     gas: Iterator = wind_generator(wind_data)
     rocks: Iterator = rock_generator(ROCKS)
 
-    nrocks: int = 0
-    while nrocks < number_of_rocks:
-        # for nrocks in range(1, number_of_rocks + 1):
-        rock_index, rock = next(rocks)
+    for nrocks in range(1, number_of_rocks + 1):
+        rock = next(rocks)
         chamber.add_falling_rock(rock)
         # print("add rock")
         # print(chamber)
 
         while not chamber.is_stable():
-            wind_index, wind = next(gas)
+            wind1: str = next(gas)
+            wind2: str = next(gas)
+            wind3: str = next(gas)
+            wind4: str = next(gas)
+            shift = consolidate(wind1, wind2, wind3, wind4)
             # print(wind)
-            chamber.gas_push(wind)
+            chamber.gas_push(shift)
             # print(chamber)
             chamber.falldown()
             # print("down")
             # print(chamber)
 
-        chamber_state: FrozenSet = chamber.trim()
-        min_chamber_state_size = min(min_chamber_state_size, len(chamber_state))
-        max_chamber_state_size = max(max_chamber_state_size, len(chamber_state))
-        state: Tuple = (rock_index, wind_index, chamber_state)
-        if state in seen_state:
-            # if len(chamber_state) == 7 and chamber_state == frozenset(
-            #     {(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6)}
-            # ):
-            #     print(nrocks, "flat!")
-            # print(chamber_state)
-            # break
-            break
-            pass
-        else:
-            # print("New state V")
-            seen_state[state] = (nrocks, chamber.size)  # nrocks diff?
+        print(nrocks, chamber.size, len(chamber.chamber))
 
-        nrocks += 1
+        # if nrocks % 100_000 == 0:
+        #     print(nrocks, chamber.size, len(chamber.chamber))
 
-    print(f"Repetition: at {nrocks = }")
-    print(f"current size {chamber.size = }")
-    previous_nrocks, previous_chamber_size = seen_state[state]
-    print(f"{previous_nrocks = }, {previous_chamber_size = }")
+    # for row in range(len(chamber.chamber) - 1, len(chamber.chamber) - 10, -1):
+    #     print(chamber.chamber[row])
 
-    # times: int = ((number_of_rocks - previous_chamber_size) // (nrocks - previous_nrocks))
-    times: int = (number_of_rocks - nrocks) // (nrocks - previous_nrocks)
-    print(f"clycle can repeat {times = }")
+    # print(chamber)
 
-    nrocks_piles: int = (nrocks - previous_nrocks) * times
-    print(f"rocks that can be piled {nrocks_piles = }")
-    size_reached: int = (chamber.size - previous_chamber_size) * times
-    # size_reached: int = (chamber.size - previous_chamber_size) * times
-    print(f"{size_reached = }")
-
-    reminding_rocks: int = number_of_rocks - nrocks_piles - nrocks - 1
-    print(f"reminding rocks {reminding_rocks = }")
-
-    # chamber.size += nrocks_piles
-
-    current_nrocks: int = 0
-    # current_nrocks: int = nrocks_piles
-    # while current_nrocks < number_of_rocks:
-    while current_nrocks < reminding_rocks:
-        # for nrocks in range(1, number_of_rocks + 1):
-        rock_index, rock = next(rocks)
-        chamber.add_falling_rock(rock)
-        # print("add rock")
-        # print(chamber)
-
-        while not chamber.is_stable():
-            wind_index, wind = next(gas)
-            # print(wind)
-            chamber.gas_push(wind)
-            # print(chamber)
-            chamber.falldown()
-            # print("down")
-            # print(chamber)
-
-        current_nrocks += 1
-
-    # print("states seen", len(seen_state))
-    # print("min state", min_chamber_state_size)
-    print(f"{chamber.size = }")
-    return chamber.size + size_reached
+    return chamber.size
 
 
 def parse(filename: str):
@@ -298,13 +241,11 @@ def solution(filename: str, number_of_rocks: int) -> int:
 
 
 if __name__ == "__main__":
-    result: int = solution("./example.txt", 1_000_000_000_000)
+    # result: int = solution("./example.txt", 1_000_000_000_000)
     # result: int = solution("./example.txt", 2022)
-    # result: int = solution("./example.txt", 100_000)
+    result: int = solution("./example.txt", 100_000)
     # result: int = solution("./example.txt", 10)
     print(result)
 
     # result = solution("./input.txt", 2022)
-    # result = solution("./input.txt", 100_000)
-    result: int = solution("./input.txt", 1_000_000_000_000)
-    print(result)
+    # print(result)

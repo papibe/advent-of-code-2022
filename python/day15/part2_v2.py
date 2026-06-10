@@ -50,6 +50,7 @@ def merge(intervals: List[List[int]]) -> List[List[int]]:
             merged.append(intervals[i])
     return merged
 
+
 def parse(filename: int) -> Tuple[Dict, Dict]:
     with open(filename, "r") as fp:
         data: str = fp.read().splitlines()
@@ -102,7 +103,6 @@ def solution(sensors: Dict, beacons: Dict, row: int) -> int:
 
         # print("=" * 50)
 
-
     merged_intervals: List[List[int]] = merge(intersections)
 
     if len(merged_intervals) == 1:
@@ -110,6 +110,7 @@ def solution(sensors: Dict, beacons: Dict, row: int) -> int:
         # print(row, merged_intervals)
 
     return 4_000_000 * (merged_intervals[0][-1] + 1) + row
+
 
 def solve(filename: int, max_row: int) -> int:
     sensors, beacons = parse(filename)

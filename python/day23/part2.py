@@ -23,6 +23,7 @@ def print_grove(grove: Set) -> None:
         print()
     print()
 
+
 def count_empty_ground(grove: Set) -> None:
     max_row: int = float("-inf")
     min_row: int = float("inf")
@@ -114,14 +115,36 @@ def east_lookup(coord: Tuple[int, int]) -> List:
         for step_row, step_col in [(1, 1), (0, 1), (-1, 1)]
     ]
 
+
 def lookup_generator(index: int):
     functions = (
-        (( -1, 0, north_lookup), ( 1, 0, south_lookup), ( 0, -1, west_lookup), ( 0, 1, east_lookup)),
-        (( 1, 0, south_lookup), ( 0, -1, west_lookup), ( 0, 1, east_lookup), ( -1, 0, north_lookup)),
-        (( 0, -1, west_lookup), ( 0, 1, east_lookup), ( -1, 0, north_lookup), ( 1, 0, south_lookup)),
-        (( 0, 1, east_lookup), ( -1, 0, north_lookup), ( 1, 0, south_lookup), ( 0, -1, west_lookup)),
+        (
+            (-1, 0, north_lookup),
+            (1, 0, south_lookup),
+            (0, -1, west_lookup),
+            (0, 1, east_lookup),
+        ),
+        (
+            (1, 0, south_lookup),
+            (0, -1, west_lookup),
+            (0, 1, east_lookup),
+            (-1, 0, north_lookup),
+        ),
+        (
+            (0, -1, west_lookup),
+            (0, 1, east_lookup),
+            (-1, 0, north_lookup),
+            (1, 0, south_lookup),
+        ),
+        (
+            (0, 1, east_lookup),
+            (-1, 0, north_lookup),
+            (1, 0, south_lookup),
+            (0, -1, west_lookup),
+        ),
     )
     return functions[index % 4]
+
 
 def round(grove: Set[Tuple[int, int]], index: int) -> Set:
     count_moves: Dict = {}
@@ -147,7 +170,7 @@ def round(grove: Set[Tuple[int, int]], index: int) -> Set:
         print("-" * 50)
         for step_row, step_col, func in lookup_generator_values:
             # print(step_row, step_col, func)
-            if all(nb not in grove for nb in func(coord)):           
+            if all(nb not in grove for nb in func(coord)):
                 next_coord = (row + step_row, col + step_col)
                 count_moves[next_coord] = count_moves.get(next_coord, 0) + 1
                 attempted_moves[coord] = next_coord
@@ -155,7 +178,6 @@ def round(grove: Set[Tuple[int, int]], index: int) -> Set:
                 break
         else:
             staying_in_place.add(coord)
-
 
     print(f"{len(staying_in_place) =}, {staying_in_place}")
     print(f"{len(attempted_moves) =}, {attempted_moves = }")

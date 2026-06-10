@@ -52,12 +52,8 @@ def solve(valves: Dict[str, Valve]) -> int:
         # print(minute, valve, current_pressure)
 
         max_pressure = max(max_pressure, current_pressure)
-        if minute > 30:
-            # print("reached 30!")
-            # break
+        if minute >= 30:
             continue
-        # if max_pressure == 1880:
-        #     print(opened)
 
         # not open valve
         for neighbor in valves[valve].neighbors:
@@ -71,13 +67,13 @@ def solve(valves: Dict[str, Valve]) -> int:
             new_opened = opened.copy()
             new_opened.add(valve)
 
+            history[valve] = current_pressure
+            # if valve in history:
+            #     print(history[valve], current_pressure)
+            # history[valve] = max(current_pressure, history[valve])
             # print(minute, valve, current_pressure, f"{valve} opened")
 
-            minute += 1  # walk to other valve
-            for neighbor in valves[valve].neighbors:
-                if neighbor not in history or current_pressure > history[neighbor]:
-                    history[neighbor] = current_pressure
-                    queue.append((minute, neighbor, current_pressure, new_opened))
+            queue.append((minute, valve, current_pressure, new_opened))
 
     return max_pressure
 

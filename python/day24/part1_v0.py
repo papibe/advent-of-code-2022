@@ -45,11 +45,13 @@ class Flat:
         for direction, blizzards in self.blizzards.items():
             for bliz_row, bliz_col in blizzards:
                 next_coord = (
-                    (bliz_row - 1 + Blizzard.directions[direction][0]) % (self.rows - 2) + 1,
-                    (bliz_col - 1 + Blizzard.directions[direction][1]) % (self.cols - 2) + 1
+                    (bliz_row - 1 + Blizzard.directions[direction][0]) % (self.rows - 2)
+                    + 1,
+                    (bliz_col - 1 + Blizzard.directions[direction][1]) % (self.cols - 2)
+                    + 1,
                 )
                 new_blizzards[direction][next_coord] = True
-            
+
         self.blizzards = new_blizzards
 
     def __repr__(self) -> str:

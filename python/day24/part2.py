@@ -177,9 +177,14 @@ def solution(filename: str) -> int:
     states: List[Flat] = get_states(flat)
     # print(len(states))
     minute, state_number = solve(0, (0, 1), (flat.rows - 1, flat.cols - 2), 0, states)
-    minute, state_number = solve(minute, (flat.rows - 1, flat.cols - 2), (0, 1), state_number, states)
-    minute, state_number = solve(minute, (0, 1), (flat.rows - 1, flat.cols - 2), state_number, states)
+    minute, state_number = solve(
+        minute, (flat.rows - 1, flat.cols - 2), (0, 1), state_number, states
+    )
+    minute, state_number = solve(
+        minute, (0, 1), (flat.rows - 1, flat.cols - 2), state_number, states
+    )
     return minute
+
 
 if __name__ == "__main__":
     print(solution("./example.txt"))

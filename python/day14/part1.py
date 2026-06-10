@@ -83,7 +83,11 @@ def solution(filename: str) -> int:
                 continue
 
             # try left down
-            if sand[0] + 1 >= drawing_rows or sand[1] - 1 < 0  or sand[1] - 1 >= drawing_cols:
+            if (
+                sand[0] + 1 >= drawing_rows
+                or sand[1] - 1 < 0
+                or sand[1] - 1 >= drawing_cols
+            ):
                 return rest_counter
 
             if drawing[sand[0] + 1][sand[1] - 1] == AIR:
@@ -93,7 +97,11 @@ def solution(filename: str) -> int:
                 continue
 
             # try right down
-            if sand[0] + 1 >= drawing_rows or sand[1] + 1 < 0 or sand[1] + 1 >= drawing_cols:
+            if (
+                sand[0] + 1 >= drawing_rows
+                or sand[1] + 1 < 0
+                or sand[1] + 1 >= drawing_cols
+            ):
                 return rest_counter
 
             if drawing[sand[0] + 1][sand[1] + 1] == AIR:
@@ -105,7 +113,6 @@ def solution(filename: str) -> int:
             drawing[sand[0]][sand[1]] = REST
             rest_counter += 1
             break
-
 
             # for line in drawing:
             #     print("".join(line), len(line))

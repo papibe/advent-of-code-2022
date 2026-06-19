@@ -1,18 +1,27 @@
-def solution(filename: str) -> int:
-    with open(filename, "r") as fp:
-        raw_data: str = fp.read()
+from typing import List
 
-    # set initial values for 3 maxs
+
+def parse(filename: str) -> List[List[int]]:
+    with open(filename, "r") as fp:
+        data: List[str] = fp.read().split("\n\n")
+
+    elf_calories: List[List[int]] = []
+    for elf_block in data:
+        str_calories: List[str] = elf_block.splitlines()
+        elf_calories.append([int(calorie) for calorie in str_calories])
+
+    return elf_calories
+
+
+def solve(elf_calories: List[List[int]]) -> int:
     max_calories_1: int = 0
     max_calories_2: int = 0
     max_calories_3: int = 0
 
-    for elf_snack_calories in raw_data.split("\n\n"):
-        total_elf_calories: int = sum(
-            [int(calorie) for calorie in elf_snack_calories.splitlines()]
-        )
+    for elf_snack_calories in elf_calories:
+        total_elf_calories: int = sum(elf_snack_calories)
 
-        # update max values if necessary
+        # update max values
         if total_elf_calories > max_calories_1:
             max_calories_3 = max_calories_2
             max_calories_2 = max_calories_1
@@ -26,9 +35,11 @@ def solution(filename: str) -> int:
     return max_calories_1 + max_calories_2 + max_calories_3
 
 
-if __name__ == "__main__":
-    result: int = solution("./example.txt")
-    print(result)  # it should be 24000
+def solution(filename: str) -> int:
+    elf_calories: List[List[int]] = parse(filename)
+    return solve(elf_calories)
 
-    result = solution("./input.txt")
-    print(result)
+
+if __name__ == "__main__":
+    print(solution("./example.txt"))  # 45000
+    print(solution("./input.txt"))  # 199628

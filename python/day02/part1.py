@@ -1,35 +1,52 @@
-from typing import List
+from collections import namedtuple
+from typing import Dict, List
 
-ROCK, PAPER, SCISSORS = "A", "B", "C"
+Play = namedtuple("Play", ["their_play", "my_strategy"])
+
+ROCK: str = "A"
+PAPER: str = "B"
+SCISSORS: str = "C"
 
 # strategy translation
-strategy = {"X": ROCK, "Y": PAPER, "Z": SCISSORS}
+strategy: Dict[str, str] = {"X": ROCK, "Y": PAPER, "Z": SCISSORS}
 
-play_value = {ROCK: 1, PAPER: 2, SCISSORS: 3}
+play_value: Dict[str, int] = {ROCK: 1, PAPER: 2, SCISSORS: 3}
 
-match_result_value = {
+match_result_value: Dict[str, Dict[str, int]] = {
     ROCK: {ROCK: 3, PAPER: 6, SCISSORS: 0},
     PAPER: {ROCK: 0, PAPER: 3, SCISSORS: 6},
     SCISSORS: {ROCK: 6, PAPER: 0, SCISSORS: 3},
 }
 
 
-def solution(filename: str) -> int:
+def parse(filename: str) -> List[Play]:
     with open(filename, "r") as fp:
-        plays: List[str] = fp.read().splitlines()
+        data: List[str] = fp.read().splitlines()
 
+    plays: List[Play] = []
+    for line in data:
+        line_split: List[str] = line.split()
+        their_play: str = line_split[0]
+        my_strategy: str = line_split[1]
+        plays.append(Play(their_play, my_strategy))
+
+    return plays
+
+
+def solve(plays: List[Play]) -> int:
     points: int = 0
     for play in plays:
-        other_play, my_strategy = play.split()
-        my_play = strategy[my_strategy]
-        points += play_value[my_play] + match_result_value[other_play][my_play]
+        my_play = strategy[play.my_strategy]
+        points += play_value[my_play] + match_result_value[play.their_play][my_play]
 
     return points
 
 
-if __name__ == "__main__":
-    result: int = solution("./example.txt")
-    print(result)  # it should be 12
+def solution(filename: str) -> int:
+    plays: List[Play] = parse(filename)
+    return solve(plays)
 
-    result = solution("./input.txt")
-    print(result)
+
+if __name__ == "__main__":
+    print(solution("./example.txt"))  # 15
+    print(solution("./input.txt"))  # 13052

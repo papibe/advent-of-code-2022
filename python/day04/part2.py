@@ -1,32 +1,61 @@
-from typing import List
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import List, Tuple
 
 
-def overlaps(fi: str, fe: str, si: str, se: str) -> bool:
-    if fe < si or se < fi:
-        return False
-    else:
+@dataclass
+class SectionAssignment:
+    start: int
+    end: int
+
+    def overlaps(self, other: SectionAssignment) -> bool:
+        if self.end < other.start or other.end < self.start:
+            return False
+
         return True
 
 
-def solution(filename: str) -> int:
+def parse(filename: str) -> List[Tuple[SectionAssignment, SectionAssignment]]:
     with open(filename, "r") as fp:
-        section_pairs: List = fp.read().splitlines()
+        lines: List[str] = fp.read().splitlines()
 
-    total_overlaps: int = 0
-    for pair in section_pairs:
+    section_assignments: List[Tuple[SectionAssignment, SectionAssignment]] = []
+
+    for pair in lines:
         first_pair, second_pair = pair.split(",")
         first_init, first_end = first_pair.split("-")
         second_init, second_end = second_pair.split("-")
 
-        if overlaps(int(first_init), int(first_end), int(second_init), int(second_end)):
+        section_assignments.append(
+            (
+                SectionAssignment(int(first_init), int(first_end)),
+                SectionAssignment(int(second_init), int(second_end)),
+            )
+        )
+
+    return section_assignments
+
+
+def solve(
+    section_assignments: List[Tuple[SectionAssignment, SectionAssignment]],
+) -> int:
+    total_overlaps: int = 0
+
+    for section_assignment in section_assignments:
+        first_section, second_section = section_assignment
+
+        if first_section.overlaps(second_section):
             total_overlaps += 1
 
     return total_overlaps
 
 
-if __name__ == "__main__":
-    result: int = solution("./example.txt")
-    print(result)  # it should be 4
+def solution(filename: str) -> int:
+    section_assignments = parse(filename)
+    return solve(section_assignments)
 
-    result = solution("./input.txt")
-    print(result)
+
+if __name__ == "__main__":
+    print(solution("./example.txt"))  # 4
+    print(solution("./input.txt"))  # 830

@@ -1,31 +1,62 @@
-from typing import List
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import List, Tuple
 
 
-def is_contained(fi: str, fe: str, si: str, se: str) -> bool:
-    return (int(fi) <= int(si) and int(se) <= int(fe)) or (
-        int(si) <= int(fi) and int(fe) <= int(se)
-    )
+@dataclass
+class SectionAssignment:
+    start: int
+    end: int
+
+    def is_contained(self, other: SectionAssignment) -> bool:
+        return self.start <= other.start and other.end <= self.end
 
 
-def solution(filename: str) -> int:
+def parse(filename: str) -> List[Tuple[SectionAssignment, SectionAssignment]]:
     with open(filename, "r") as fp:
-        section_pairs: List = fp.read().splitlines()
+        lines: List[str] = fp.read().splitlines()
 
-    fully_contained: int = 0
-    for pair in section_pairs:
+    section_assignments: List[Tuple[SectionAssignment, SectionAssignment]] = []
+
+    for pair in lines:
         first_pair, second_pair = pair.split(",")
         first_init, first_end = first_pair.split("-")
         second_init, second_end = second_pair.split("-")
 
-        if is_contained(first_init, first_end, second_init, second_end):
+        section_assignments.append(
+            (
+                SectionAssignment(int(first_init), int(first_end)),
+                SectionAssignment(int(second_init), int(second_end)),
+            )
+        )
+
+    return section_assignments
+
+
+def solve(
+    section_assignments: List[Tuple[SectionAssignment, SectionAssignment]],
+) -> int:
+    fully_contained: int = 0
+
+    for section_assignment in section_assignments:
+        first_section, second_section = section_assignment
+
+        if first_section.is_contained(second_section) or second_section.is_contained(
+            first_section
+        ):
             fully_contained += 1
 
     return fully_contained
 
 
-if __name__ == "__main__":
-    result: int = solution("./example.txt")
-    print(result)  # it should be 2
+def solution(filename: str) -> int:
+    section_assignments: List[Tuple[SectionAssignment, SectionAssignment]] = parse(
+        filename
+    )
+    return solve(section_assignments)
 
-    result = solution("./input.txt")
-    print(result)
+
+if __name__ == "__main__":
+    print(solution("./example.txt"))  # 2
+    print(solution("./input.txt"))  # 477

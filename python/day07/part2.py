@@ -1,36 +1,39 @@
-from typing import List
-
-from fs.file_system import Dir, File, create_filesystem_tree, calculate_dir_sizes
+from fs.file_system import Dir, create_filesystem_tree
 
 
-def get_min_directory(
-    node: Dir, space_left: int, space_needed: int, min_size: List[int]
-) -> None:
-    if node is None or isinstance(node, File):
-        return
-    if node.size + space_left >= space_needed:
-        min_size[0] = min(min_size[0], node.size)
-    for dirname, dir in node.dirs.items():
-        get_min_directory(dir, space_left, space_needed, min_size)
+def parse(filename: str) -> str:
+    with open(filename, "r") as fp:
+        terminal_output: str = fp.read()
+    return terminal_output
+
+
+def get_min_directory(node: Dir, space_left: int, space_needed: int) -> int:
+    min_size: int = float("inf")  # type: ignore
+
+    def dfs(node: Dir) -> None:
+        nonlocal min_size
+
+        if node.size + space_left >= space_needed:
+            min_size = min(min_size, node.size)
+
+        for _, subdir in node.dirs.items():
+            dfs(subdir)
+
+    dfs(node)
+    return min_size
 
 
 def solution(filename: str) -> int:
-    with open(filename, "r") as fp:
-        terminal_output: str = fp.read()
+    terminal_output: str = parse(filename)
 
     root = create_filesystem_tree(terminal_output)
-    calculate_dir_sizes(root)
+    root.update_dir_sizes()
 
     space_left = 70_000_000 - root.size
-    min_size: List[int] = [float("inf")]
-    get_min_directory(root, space_left, 30_000_000, min_size)
 
-    return min_size[0]
+    return get_min_directory(root, space_left, 30_000_000)
 
 
 if __name__ == "__main__":
-    result: int = solution("./example.txt")
-    print(result)  # it should be 95437
-
-    result = solution("./input.txt")
-    print(result)
+    print(solution("./example.txt"))  # 24933642
+    print(solution("./input.txt"))  # 5883165

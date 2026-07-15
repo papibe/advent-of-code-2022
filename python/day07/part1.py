@@ -1,35 +1,37 @@
-from typing import List
-
-from fs.file_system import Dir, File, create_filesystem_tree, calculate_dir_sizes
+from fs.file_system import Dir, create_filesystem_tree
 
 
-def get_sum_sizes(node: Dir, max_size: int, value: List[int]) -> None:
-    if node is None:
-        return 0
-    if isinstance(node, File):
-        return 0
-    if node.size <= max_size:
-        value[0] += node.size
-    for dirname, dir in node.dirs.items():
-        get_sum_sizes(dir, max_size, value)
+def parse(filename: str) -> str:
+    with open(filename, "r") as fp:
+        terminal_output: str = fp.read()
+    return terminal_output
+
+
+def get_sum_sizes(node: Dir, max_size: int) -> int:
+    total_sum: int = 0
+
+    def dfs(node: Dir) -> None:
+        nonlocal total_sum
+
+        if node.size <= max_size:
+            total_sum += node.size
+
+        for _, subdir in node.dirs.items():
+            dfs(subdir)
+
+    dfs(node)
+    return total_sum
 
 
 def solution(filename: str) -> int:
-    with open(filename, "r") as fp:
-        terminal_output: str = fp.read()
+    terminal_output: str = parse(filename)
 
     root = create_filesystem_tree(terminal_output)
-    calculate_dir_sizes(root)
+    root.update_dir_sizes()
 
-    sum_sizes: List[int] = [0]
-    get_sum_sizes(root, 100_000, sum_sizes)
-
-    return sum_sizes[0]
+    return get_sum_sizes(root, 100_000)
 
 
 if __name__ == "__main__":
-    result: int = solution("./example.txt")
-    print(result)  # it should be 95437
-
-    result = solution("./input.txt")
-    print(result)
+    print(solution("./example.txt"))  #  95437
+    print(solution("./input.txt"))  #  2104783

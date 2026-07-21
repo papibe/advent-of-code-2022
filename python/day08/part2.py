@@ -1,76 +1,60 @@
 from typing import List
 
+Trees = List[List[int]]
 
-class Tree:
-    def __init__(self, height: int) -> None:
-        self.height = int(height)
-        self.visible = False
 
-    def set_visible(self, visibility: bool) -> None:
-        self.visible = visibility
+def parse(filename: str) -> Trees:
+    with open(filename, "r") as fp:
+        data: List[str] = fp.read().splitlines()
 
-    def is_visible(self) -> bool:
-        return self.visible
+    return [[int(tree) for tree in row] for row in data]
+
+
+def solve(trees: Trees) -> int:
+    size: int = len(trees)
+
+    max_scenic_score: int = 0
+    for current_row in range(1, size - 1):
+        for current_col in range(1, size - 1):
+            height: int = trees[current_row][current_col]
+            # up
+            current_ss_up: int = 0
+            for row in range(current_row - 1, -1, -1):
+                current_ss_up += 1
+                if trees[row][current_col] >= height:
+                    break
+            # right
+            current_ss_right: int = 0
+            for col in range(current_col + 1, size):
+                current_ss_right += 1
+                if trees[current_row][col] >= height:
+                    break
+            # down
+            current_ss_down: int = 0
+            for row in range(current_row + 1, size):
+                current_ss_down += 1
+                if trees[row][current_col] >= height:
+                    break
+            # left
+            current_ss_left: int = 0
+            for col in range(current_col - 1, -1, -1):
+                current_ss_left += 1
+                if trees[current_row][col] >= height:
+                    break
+
+            current_score: int = (
+                current_ss_up * current_ss_right * current_ss_down * current_ss_left
+            )
+            max_scenic_score = max(max_scenic_score, current_score)
+
+    return max_scenic_score
 
 
 def solution(filename: str) -> int:
-    with open(filename, "r") as fp:
-        data: str = fp.read()
-
-    trees: List[List[str]] = [list(map(Tree, row)) for row in data.splitlines()]
-    trees_size: int = len(trees)
-
-    scenic_score: int = 0
-    for row in range(1, trees_size - 1):
-        for col in range(1, trees_size - 1):
-            height: int = trees[row][col].height
-            # up
-            scenic_score_up: int = 0
-            for lrow in range(row - 1, -1, -1):
-                if trees[lrow][col].height >= height:
-                    scenic_score_up += 1
-                    break
-                if trees[lrow][col].height < height:
-                    scenic_score_up += 1
-            # right
-            scenic_score_right: int = 0
-            for lcol in range(col + 1, trees_size):
-                if trees[row][lcol].height >= height:
-                    scenic_score_right += 1
-                    break
-                if trees[row][lcol].height < height:
-                    scenic_score_right += 1
-            # down
-            scenic_score_down: int = 0
-            for lrow in range(row + 1, trees_size):
-                if trees[lrow][col].height >= height:
-                    scenic_score_down += 1
-                    break
-                if trees[lrow][col].height < height:
-                    scenic_score_down += 1
-            # left
-            scenic_score_left: int = 0
-            for lcol in range(col - 1, -1, -1):
-                if trees[row][lcol].height >= height:
-                    scenic_score_left += 1
-                    break
-                if trees[row][lcol].height < height:
-                    scenic_score_left += 1
-
-            scenic_score = max(
-                scenic_score,
-                scenic_score_up
-                * scenic_score_right
-                * scenic_score_down
-                * scenic_score_left,
-            )
-
-    return scenic_score
+    trees: Trees = parse(filename)
+    return solve(trees)
 
 
 if __name__ == "__main__":
-    result: int = solution("./example.txt")
-    print(result)
-
-    result = solution("./input.txt")
-    print(result)
+    print(solution("./example.txt"))  # 8
+    print(solution("./input.txt"))  # 263670

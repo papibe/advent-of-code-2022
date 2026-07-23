@@ -1,12 +1,15 @@
-import re
 import math
-from typing import List, Set, Tuple
+import re
+from collections import namedtuple
+from typing import List, Match, Optional, Set, Tuple
+
+Instruction = namedtuple("Instruction", ["direction", "amount"])
 
 
 class Plank:
-    def __init__(self) -> None:
-        self.x: int = 0
-        self.y: int = 0
+    def __init__(self, x: int, y: int) -> None:
+        self.x: int = x
+        self.y: int = y
 
     def get_pos(self) -> Tuple[int, int]:
         return (self.x, self.y)
@@ -21,7 +24,7 @@ class Plank:
         elif direction == "D":
             self.y -= 1
 
-    def follow(self, head) -> None:
+    def follow(self, head: "Plank") -> None:
         if abs(self.x - head.x) <= 1 and abs(self.y - head.y) <= 1:
             return
 
@@ -40,31 +43,42 @@ class Plank:
             self.y += int(math.copysign(1, head.y - self.y))
 
 
-def solution(filename: str) -> int:
+def parse(filename: str) -> List[Instruction]:
     with open(filename, "r") as fp:
-        motions: List[str] = fp.read().splitlines()
+        data: List[str] = fp.read().splitlines()
 
-    head: Plank = Plank()
-    tail: Plank = Plank()
+    instructions: List[Instruction] = []
+
+    for line in data:
+        matches: Optional[Match[str]] = re.match(r"(\w) (\d+)", line)
+        if matches:
+            direction: str = matches.group(1)
+            amount: int = int(matches.group(2))
+            instructions.append(Instruction(direction, amount))
+
+    return instructions
+
+
+def solve(instructions: List[Instruction]) -> int:
+    head: Plank = Plank(0, 0)
+    tail: Plank = Plank(0, 0)
     visited: Set[Tuple[int, int]] = {(0, 0)}
 
-    for raw_motion in motions:
-        exp = re.match("(\w) (\d+)", raw_motion)
-        direction = exp.group(1)
-        amount = int(exp.group(2))
-
+    for instr in instructions:
         # move head one step at a time
-        for _ in range(amount):
-            head.move(direction)
+        for _ in range(instr.amount):
+            head.move(instr.direction)
             tail.follow(head)
             visited.add(tail.get_pos())
 
     return len(visited)
 
 
-if __name__ == "__main__":
-    result: int = solution("./data/example1.txt")
-    print(result)  # it should be 13
+def solution(filename: str) -> int:
+    instructions: List[Instruction] = parse(filename)
+    return solve(instructions)
 
-    result = solution("./data/input.txt")
-    print(result)
+
+if __name__ == "__main__":
+    print(solution("./example1.txt"))  # 13
+    print(solution("./input.txt"))  # 5619

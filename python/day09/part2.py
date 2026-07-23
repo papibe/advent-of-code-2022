@@ -1,12 +1,17 @@
-import re
 import math
-from typing import List, Set, Tuple
+import re
+from collections import namedtuple
+from typing import List, Match, Optional, Set, Tuple
+
+LAST: int = -1
+
+Instruction = namedtuple("Instruction", ["direction", "amount"])
 
 
 class Plank:
-    def __init__(self) -> None:
-        self.x: int = 0
-        self.y: int = 0
+    def __init__(self, x: int, y: int) -> None:
+        self.x: int = x
+        self.y: int = y
 
     def get_pos(self) -> Tuple[int, int]:
         return (self.x, self.y)
@@ -21,7 +26,7 @@ class Plank:
         elif direction == "D":
             self.y -= 1
 
-    def follow(self, head) -> None:
+    def follow(self, head: "Plank") -> None:
         if abs(self.x - head.x) <= 1 and abs(self.y - head.y) <= 1:
             return
 
@@ -44,25 +49,34 @@ class Plank:
             self.y += int(math.copysign(1, head.y - self.y))
 
 
-def solution(filename: str) -> int:
+def parse(filename: str) -> List[Instruction]:
     with open(filename, "r") as fp:
-        motions: List[str] = fp.read().splitlines()
+        data: List[str] = fp.read().splitlines()
 
-    rope = [Plank() for _ in range(10)]
+    instructions: List[Instruction] = []
+
+    for line in data:
+        matches: Optional[Match[str]] = re.match(r"(\w) (\d+)", line)
+        if matches:
+            direction: str = matches.group(1)
+            amount: int = int(matches.group(2))
+            instructions.append(Instruction(direction, amount))
+
+    return instructions
+
+
+def solve(instructions: List[Instruction]) -> int:
+    rope: List[Plank] = [Plank(0, 0) for _ in range(10)]
     head: Plank = rope[0]
-    tail: Plank = rope[-1]
+    tail: Plank = rope[LAST]
     visited: Set[Tuple[int, int]] = {(0, 0)}
 
-    for raw_motion in motions:
-        exp = re.match("(\w) (\d+)", raw_motion)
-        direction = exp.group(1)
-        amount = int(exp.group(2))
-
+    for instr in instructions:
         # move head on step at a time
-        for _ in range(amount):
-            head.move(direction)
+        for _ in range(instr.amount):
+            head.move(instr.direction)
 
-            # move each knot based on the next ahed of it
+            # move each knot based on the next ahead of it
             for index in range(1, 10):
                 rope[index].follow(rope[index - 1])
 
@@ -71,12 +85,12 @@ def solution(filename: str) -> int:
     return len(visited)
 
 
+def solution(filename: str) -> int:
+    instructions: List[Instruction] = parse(filename)
+    return solve(instructions)
+
+
 if __name__ == "__main__":
-    result: int = solution("./data/example1.txt")
-    print(result)  # it should be 1
-
-    result: int = solution("./data/example2.txt")
-    print(result)  # it should be 36
-
-    result = solution("./data/input.txt")
-    print(result)
+    print(solution("./example1.txt"))  # 1
+    print(solution("./example2.txt"))  # 36
+    print(solution("./input.txt"))  # 2376

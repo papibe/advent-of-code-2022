@@ -1,40 +1,58 @@
 import re
-from typing import List, Set, Tuple
+from collections import namedtuple
+from typing import List, Match, Optional, Set
 
-CYCLES = [20, 60, 100, 140, 180, 220]
+CYCLES: Set[int] = {20, 60, 100, 140, 180, 220}
+
+Instruction = namedtuple("Instruction", ["type", "param"])
 
 
-def solution(filename: str) -> int:
+def parse(filename: str) -> List[Instruction]:
     with open(filename, "r") as fp:
-        program: List[str] = fp.read().splitlines()
+        data: List[str] = fp.read().splitlines()
 
+    instructions: List[Instruction] = []
+    for line in data:
+        if line == "noop":
+            instructions.append(Instruction("noop", 0))
+        else:
+            matches: Optional[Match[str]] = re.match(r"^addx ([0-9\-]+)", line)
+            if matches:
+                value: int = int(matches.group(1))
+                instructions.append(Instruction("addx", value))
+
+    return instructions
+
+
+def solve(instructions: List[Instruction]) -> int:
     cycle: int = 1
     x_register: int = 1
     signal_strength: int = 0
 
-    for line in program:
+    for instr in instructions:
         if cycle in CYCLES:
             signal_strength += cycle * x_register
 
-        if line.startswith("noop"):
-            cycle += 1
-            continue
+        match instr.type:
+            case "noop":
+                cycle += 1
 
-        expr = re.match("^addx (-*\d+)", line)
-        value = int(expr.group(1))
-        cycle += 1
-        if cycle in CYCLES:
-            signal_strength += cycle * x_register
+            case "addx":
+                cycle += 1
+                if cycle in CYCLES:
+                    signal_strength += cycle * x_register
 
-        x_register += value
-        cycle += 1
+                x_register += instr.param
+                cycle += 1
 
     return signal_strength
 
 
-if __name__ == "__main__":
-    result: int = solution("./example.txt")
-    print(result)  # it should be 13140
+def solution(filename: str) -> int:
+    instructions: List[Instruction] = parse(filename)
+    return solve(instructions)
 
-    result = solution("./input.txt")
-    print(result)
+
+if __name__ == "__main__":
+    print(solution("./example.txt"))  # 13140
+    print(solution("./input.txt"))  # 13180

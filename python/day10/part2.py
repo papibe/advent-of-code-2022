@@ -1,60 +1,74 @@
 import re
-from typing import List
+from collections import namedtuple
+from typing import List, Match, Optional, Set
 
-CYCLES = [20, 60, 100, 140, 180, 220]
+CYCLES: Set[int] = {20, 60, 100, 140, 180, 220}
+
+Instruction = namedtuple("Instruction", ["type", "param"])
 
 
-def build_display_output(display: List[str], row_length: int) -> str:
-    output: List[str] = []
+def parse(filename: str) -> List[Instruction]:
+    with open(filename, "r") as fp:
+        data: List[str] = fp.read().splitlines()
 
+    instructions: List[Instruction] = []
+    for line in data:
+        if line == "noop":
+            instructions.append(Instruction("noop", 0))
+        else:
+            matches: Optional[Match[str]] = re.match(r"^addx ([0-9\-]+)", line)
+            if matches:
+                value: int = int(matches.group(1))
+                instructions.append(Instruction("addx", value))
+
+    return instructions
+
+
+def print_display(display: List[str]) -> None:
+    row_length: int = 40
     for index, bit in enumerate(display):
         if index % row_length == 0:
-            output.append("\n")
-        output.append(bit)
-    output.append("\n")
-
-    return "".join(output)
+            print()
+        print(bit, end="")
+    print()
 
 
-def solution(filename: str) -> int:
-    with open(filename, "r") as fp:
-        program: List[str] = fp.read().splitlines()
-
+def solve(instructions: List[Instruction]) -> None:
     cycle: int = 1
     sprite: int = 1  # former x_register
     display: List[str] = [" " for _ in range(240)]
     display_position: int = 0
 
-    for line in program:
+    for instr in instructions:
         display_position = (cycle - 1) % 40
         if sprite - 1 <= display_position <= sprite + 1:
             display[cycle - 1] = "#"
         else:
             display[cycle - 1] = "."
 
-        if line.startswith("noop"):
-            cycle += 1
-            continue
+        match instr.type:
+            case "noop":
+                cycle += 1
 
-        expr = re.match("^addx ([0-9\-]+)", line)
-        value = int(expr.group(1))
-        cycle += 1
+            case "addx":
+                cycle += 1
+                display_position = (cycle - 1) % 40
+                if sprite - 1 <= display_position <= sprite + 1:
+                    display[cycle - 1] = "#"
+                else:
+                    display[cycle - 1] = "."
 
-        display_position = (cycle - 1) % 40
-        if sprite - 1 <= display_position <= sprite + 1:
-            display[cycle - 1] = "#"
-        else:
-            display[cycle - 1] = "."
+                sprite += instr.param
+                cycle += 1
 
-        sprite += value
-        cycle += 1
+    print_display(display)
 
-    return build_display_output(display, 40)
+
+def solution(filename: str) -> None:
+    instructions: List[Instruction] = parse(filename)
+    solve(instructions)
 
 
 if __name__ == "__main__":
-    result: int = solution("./example.txt")
-    print(result)  # see README.md for expected output
-
-    result = solution("./input.txt")
-    print(result)
+    solution("./example.txt")
+    solution("./input.txt")

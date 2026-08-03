@@ -1,96 +1,98 @@
 import re
-import math
-from typing import List, Set, Tuple, Dict
+from typing import Dict, List, Match, Optional
 
 
 class Monkey:
-    index = -1
-
     def __init__(
         self,
-        id: int,
+        monkey_id: int,
         items: List[int],
-        operation: str,
+        operation: List[str],
         test_divisible: int,
         true_monkey: int,
         false_monkey: int,
     ) -> None:
-        self.id: int = id
+        self.id: int = monkey_id
         self.items: List[int] = items
-        self.operation: str = operation
+        self.operation: List[str] = operation
         self.test_divisible: int = test_divisible
         self.true_monkey: int = true_monkey
         self.false_monkey: int = false_monkey
 
     @staticmethod
-    def parse_and_create_monkey(monkey_data: List[str]):
-        monkey_id: str = re.match("Monkey (\d+):$", monkey_data[0]).group(1)
-        str_items = re.match("  Starting items: (.*)$", monkey_data[1]).group(1)
-        items = [int(item) for item in str_items.split(",")]
-        operation: str = re.match("  Operation: new = (.*)$", monkey_data[2]).group(1)
-        test_divisible: str = re.match(
-            "  Test: divisible by (\d+)$", monkey_data[3]
-        ).group(1)
-        true_monkey: str = re.match(
-            "    If true: throw to monkey (\d+)$", monkey_data[4]
-        ).group(1)
-        false_monkey: str = re.match(
-            "    If false: throw to monkey (\d+)$", monkey_data[5]
-        ).group(1)
+    def from_text(monkey_data: str) -> "Monkey":
+        regex: str = (
+            r"Monkey (\d+):\n  Starting items: (.*)\n"
+            r"  Operation: new = (\w+) (\W) (\w+)\n"
+            r"  Test: divisible by (\d+)\n"
+            r"    If true: throw to monkey (\d+)\n"
+            r"    If false: throw to monkey (\d+)"
+        )
+        matches: Optional[Match[str]] = re.match(regex, monkey_data, re.MULTILINE)
+        if matches:
+            monkey_id: str = matches.group(1)
+            items: str = matches.group(2)
+            op1: str = matches.group(3)
+            op2: str = matches.group(4)
+            op3: str = matches.group(5)
+            test_divisible: str = matches.group(6)
+            true_monkey: str = matches.group(7)
+            false_monkey: str = matches.group(8)
 
         return Monkey(
-            id=int(monkey_id),
-            items=items,
-            operation=operation.split(),
+            monkey_id=int(monkey_id),
+            items=[int(item) for item in items.split(",")],
+            operation=[op1, op2, op3],
             test_divisible=int(test_divisible),
             true_monkey=int(true_monkey),
             false_monkey=int(false_monkey),
         )
 
     def new_worry_level(self, item: int) -> int:
-        operand1 = self.operation[0]  # old
-        operator = self.operation[1]  # '+' or '*'
-        operand2 = self.operation[2]  # old or a number
+        _, operator, str_operand = self.operation
+        operand: int = int(str_operand) if str_operand.isnumeric() else item
+        return item + operand if operator == "+" else item * operand
 
-        if operand2.isnumeric():
-            operand2 = int(operand2)
-        else:
-            operand2 = item
 
-        if operator == "+":
-            return item + operand2
-        if operator == "*":
-            return item * operand2
+def parse(filename: str) -> List[Monkey]:
+    with open(filename, "r") as fp:
+        data: List[str] = fp.read().split("\n\n")
 
-    def __str__(self) -> str:
-        return f"{self.id = }, {self.items = } {self.operation} {self.test_divisible = } {self.true_monkey = } {self.false_monkey = }"
+    monkeys: List[Monkey] = []
+    for data_block in data:
+        monkeys.append(Monkey.from_text(data_block))
+
+    return monkeys
+
+
+def solve(monkeys: List[Monkey]) -> int:
+    # create game objects
+    monkey_inspections: Dict[int, int] = {}
+    for monkey in monkeys:
+        monkey_inspections[monkey.id] = 0
+
+    # play game
+    for _ in range(20):
+        for monkey in monkeys:
+            while monkey.items:
+                monkey_inspections[monkey.id] += 1
+                original_item: int = monkey.items.pop()
+                new_item: int = monkey.new_worry_level(original_item) // 3
+
+                if new_item % monkey.test_divisible == 0:
+                    monkeys[monkey.true_monkey].items.append(new_item)
+                else:
+                    monkeys[monkey.false_monkey].items.append(new_item)
+
+    sort_inspected: List[int] = sorted(monkey_inspections.values(), reverse=True)
+    return sort_inspected[0] * sort_inspected[1]
 
 
 def solution(filename: str) -> int:
-    with open(filename, "r") as fp:
-        data: str = fp.read()
-
-    monkeys_raw_data: List[str] = data.split("\n\n")
-    monkeys: Dict[int, Monkey] = {}
-    for monkey_id, monkey_data in enumerate(monkeys_raw_data):
-        monkeys[monkey_id] = Monkey.parse_and_create_monkey(monkey_data.splitlines())
-
-    for game_round in range(1, 21):
-        for monkey in monkeys.values():
-            for index, item in enumerate(monkey.items):
-                print(monkey.items[index])
-                monkey.items[index] = round(monkey.new_worry_level(item) / 3)
-                print(monkey.items[index])
-                break
-            break
-        break
-
-    return 0
+    monkeys: List[Monkey] = parse(filename)
+    return solve(monkeys)
 
 
 if __name__ == "__main__":
-    result: int = solution("./example.txt")
-    print(result)  # it should be 13140
-
-    # result = solution("./input.txt")
-    # print(result)
+    print(solution("./example.txt"))  # 10605
+    print(solution("./input.txt"))  # 99840

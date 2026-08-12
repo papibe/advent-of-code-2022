@@ -1,60 +1,83 @@
-from typing import List
 from ast import literal_eval
+from dataclasses import dataclass
+from typing import List
+
+type Package = List[Package] | int
 
 
-def is_right_order(left: List, right: List, index: int) -> bool:
-    print(f"---{left}, {right}, {index}")
-
-    if index >= len(left) and index >= len(right):
-        return None
-    if index >= len(left):
-        return True
-    if index >= len(right):
-        return False
-
-    print(f"Compare {left[index]} vs {right[index]}")
-
-    if isinstance(left[index], list) and isinstance(right[index], list):
-        return is_right_order(left[index], right[index], 0)
-
-    if isinstance(left[index], int) and isinstance(right[index], int):
-        if left[index] < right[index]:
-            return True
-        elif left[index] > right[index]:
-            return False
-        else:
-            result = is_right_order(left, right, index + 1)
-            if result is None:
-                print(f"what to do with ---{left}, {right}, {index}")
-            else:
-                return result
+@dataclass
+class Packages:
+    left: Package
+    right: Package
 
 
-def solution(filename: str) -> int:
+def parse(filename: str) -> List[Packages]:
     with open(filename, "r") as fp:
         data: List[str] = fp.read().split("\n\n")
 
-    # parse data
-    pair_of_packets: List[List] = []
+    packets: List[Packages] = []
     for pair in data:
-        packages: List[List] = [literal_eval(package) for package in pair.splitlines()]
-        # print(packages)
-        pair_of_packets.append(packages)
+        packages_line: List[str] = pair.splitlines()
+        left_package: Package = literal_eval(packages_line[0])
+        right_package: Package = literal_eval(packages_line[1])
 
-    # compare each par
+        package_pair: Packages = Packages(left_package, right_package)
+        packets.append(package_pair)
+
+    return packets
+
+
+def is_right_order(left: Package, right: Package) -> bool | None:
+    # both lists
+    if isinstance(left, list) and isinstance(right, list):
+        index: int = 0
+        while True:
+            if index >= len(left) and index >= len(right):
+                return None
+            if index >= len(left):
+                return True
+            if index >= len(right):
+                return False
+
+            result: bool | None = is_right_order(left[index], right[index])
+            if result is None:
+                index += 1
+            else:
+                return result
+
+    # both ints
+    if isinstance(left, int) and isinstance(right, int):
+        if left < right:
+            return True
+        elif left > right:
+            return False
+        else:
+            return None
+
+    if isinstance(left, int):
+        return is_right_order([left], right)
+
+    if isinstance(right, int):
+        return is_right_order(left, [right])
+
+    return None
+
+
+def solve(packets: List[Packages]) -> int:
     right_order_indexes: List[int] = []
-    for index, pair in enumerate(pair_of_packets):
-        left_package, right_package = pair
-        # print(left_package, right_package)
-        if is_right_order(left_package, right_package, 0):
-            print(index + 1, "true")
-            right_order_indexes.append(index + 1)
 
-    print(right_order_indexes)
+    for index, pair in enumerate(packets, start=1):
+        if is_right_order(pair.left, pair.right):
+            right_order_indexes.append(index)
 
     return sum(right_order_indexes)
 
 
+def solution(filename: str) -> int:
+    packages: List[Packages] = parse(filename)
+    return solve(packages)
+
+
 if __name__ == "__main__":
-    result: int = solution("./example.txt")
-    print(result)
+    print(solution("./example.txt"))  # 13
+    print(solution("./input.txt"))  # 5905

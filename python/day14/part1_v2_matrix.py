@@ -1,25 +1,26 @@
 import math
-from typing import List
-
+from typing import List, Tuple
 
 ROCK = "#"
 AIR = "."
 SAND = "+"
 REST = "o"
 
+type Cave = List[List[str]]
 
-def solution(filename: str) -> int:
+
+def parse(filename: str) -> Tuple[Cave, int, int]:
     with open(filename, "r") as fp:
         data: List[str] = fp.read().splitlines()
 
     max_x: int = 0
     max_y: int = 0
-    min_x: int = float("inf")
-    min_y: int = float("inf")
+    min_x: int = float("inf")  # type: ignore
+    min_y: int = float("inf")  # type: ignore
 
-    scan: List = []
+    scan: List[List[List[int]]] = []
     for line in data:
-        path: List = []
+        path: List[List[int]] = []
         for pair in line.split(" -> "):
             coords = [int(coord) for coord in pair.split(",")]
             max_x = max(max_x, coords[0])
@@ -29,101 +30,100 @@ def solution(filename: str) -> int:
             path.append(coords)
         scan.append(path)
 
-    # for path in scan:
-    #     print(path)
-    print(f"{min_x = }, {max_x = }")
-    print(f"{min_y = }, {max_y = }")
-
     drawing_rows = max_y + 1  # sand needs to float from 0
     drawing_cols = max_x - min_x + 1
-
-    print(f"{drawing_rows = }, {drawing_cols = }")
 
     drawing: List[List[str]] = [[AIR] * drawing_cols for _ in range(drawing_rows)]
 
     for path in scan:
         for index in range(1, len(path)):
-            # print(path[index - 1], path[index])
             origin_x, origin_y = path[index - 1]
             destination_x, destination_y = path[index]
-            # print(f"{origin_x = }, {origin_y = }\t{destination_x = }, {destination_y = }")
 
             x_direction: int = int(math.copysign(1, destination_x - origin_x))
             y_direction: int = int(math.copysign(1, destination_y - origin_y))
             for x in range(origin_x, destination_x + x_direction, x_direction):
                 for y in range(origin_y, destination_y + y_direction, y_direction):
-                    print(f"{y = } {x = }\t{y}, {x - min_x}")
                     drawing[y][x - min_x] = ROCK
 
-    # for line in drawing:
-    #     print(''.join(line), len(line))
+    return drawing, 0, 500 - min_x
 
-    sand_couter: int = 0
+
+def solve(drawing: Cave, sand_start_row: int, sand_start_col: int) -> int:
+
+    drawing_rows: int = len(drawing)
+    drawing_cols: int = len(drawing[0])
+
+    mins: List[int] = [float("inf")] * drawing_cols  # type: ignore
+
+    for col in range(drawing_cols):
+        for row in range(drawing_rows):
+            if drawing[row][col] == ROCK:
+                mins[col] = min(mins[col], row)
+
     rest_counter: int = 0
     while True:
         # drop sand
-        sand = [0, 500 - min_x]
-        drawing[sand[0]][sand[1]] = SAND
+        sand_row: int = sand_start_row
+        sand_col: int = sand_start_col
+        drawing[sand_row][sand_col] = SAND
 
-        # sand fall
-        fall_counter: int = 0
         while True:
-            #     for line in drawing:
-            #         print("".join(line), len(line))
-
             # try down
-            if sand[0] + 1 < drawing_rows and drawing[sand[0] + 1][sand[1]] == AIR:
-                drawing[sand[0]][sand[1]] = AIR
-                drawing[sand[0] + 1][sand[1]] = SAND
-                sand = [sand[0] + 1, sand[1]]
+            if sand_row + 1 >= drawing_rows:
+                return rest_counter
+
+            if drawing[sand_row + 1][sand_col] == AIR:
+                new_sand_row = max(sand_row + 1, mins[sand_col] - 1)
+                drawing[sand_row][sand_col] = AIR
+                drawing[new_sand_row][sand_col] = SAND
+                sand_row = new_sand_row
+                continue
+
             # try left down
-            elif (
-                sand[0] + 1 < drawing_rows
-                and 0 <= sand[1] - 1 < drawing_cols
-                and drawing[sand[0] + 1][sand[1] - 1] == AIR
+            if (
+                sand_row + 1 >= drawing_rows
+                or sand_col - 1 < 0
+                or sand_col - 1 >= drawing_cols
             ):
-                drawing[sand[0]][sand[1]] = AIR
-                drawing[sand[0] + 1][sand[1] - 1] = SAND
-                sand = [sand[0] + 1, sand[1] - 1]
+                return rest_counter
+
+            if drawing[sand_row + 1][sand_col - 1] == AIR:
+                drawing[sand_row][sand_col] = AIR
+                drawing[sand_row + 1][sand_col - 1] = SAND
+                sand_row += 1
+                sand_col -= 1
+
+                continue
+
             # try right down
-            elif (
-                sand[0] + 1 < drawing_rows
-                and 0 <= sand[1] + 1 < drawing_cols
-                and drawing[sand[0] + 1][sand[1] + 1] == AIR
+            if (
+                sand_row + 1 >= drawing_rows
+                or sand_col + 1 < 0
+                or sand_col + 1 >= drawing_cols
             ):
-                drawing[sand[0]][sand[1]] = AIR
-                drawing[sand[0] + 1][sand[1] + 1] = SAND
-                sand = [sand[0] + 1, sand[1] + 1]
-            else:
-                if (
-                    sand[0] + 1 >= drawing_rows
-                    or sand[1] - 1 < 0
-                    or sand[1] - 1 >= drawing_cols
-                    or sand[1] + 1 < 0
-                    or sand[1] + 1 >= drawing_cols
-                ):
-                    # print(f"final {rest_counter = }")
-                    return rest_counter
-                drawing[sand[0]][sand[1]] = REST
-                rest_counter += 1
-                # for line in drawing:
-                #     print("".join(line), len(line))
-                # print(f"{rest_counter = }")
-                break
+                return rest_counter
 
-            # fall_counter += 1
-            # if fall_counter == 25:
-            #     break
+            if drawing[sand_row + 1][sand_col + 1] == AIR:
+                drawing[sand_row][sand_col] = AIR
+                drawing[sand_row + 1][sand_col + 1] = SAND
+                sand_row += 1
+                sand_col += 1
+                continue
 
-        # sand_couter += 1
-        # if sand_couter == 25:
-        #     break
-    return 0
+            drawing[sand_row][sand_col] = REST
+            mins[sand_col] = min(mins[sand_col], sand_row)
+            rest_counter += 1
+            break
+
+    return -1
+
+
+def solution(filename: str) -> int:
+    drawing, sand_row, sand_col = parse(filename)
+    return solve(drawing, sand_row, sand_col)
 
 
 if __name__ == "__main__":
-    result: int = solution("./example.txt")
-    print(result)
-
-    result = solution("./input.txt")
-    print(result)
+    print(solution("./example.txt"))  # 24
+    print(solution("./input.txt"))  # 897

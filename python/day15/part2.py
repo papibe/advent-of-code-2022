@@ -1,123 +1,97 @@
 import re
-from typing import Dict, Tuple, List
+from typing import List, Match, Optional, Tuple
+
+MULTIPLIER: int = 4_000_000
 
 
 class Sensor:
     def __init__(
         self, sensor_x: int, sensor_y: int, beacon_x: int, beacon_y: int
     ) -> None:
-        self.sensor_x: int = sensor_x
-        self.sensor_y: int = sensor_y
-        self.beacon_x: int = beacon_x
-        self.beacon_y: int = beacon_y
-        self.manhattan_radius: int = abs(beacon_x - sensor_x) + abs(sensor_y - beacon_y)
-        self.lower_reach: int = sensor_y - self.manhattan_radius
-        # self.lower_reach: int = (
-        #     0
-        #     if sensor_y - self.manhattan_radius < 0
-        #     else sensor_y - self.manhattan_radius
-        # )
-        self.high_reach: int = sensor_y + self.manhattan_radius
-
-    def __repr__(self) -> str:
-        # return f"({self.sensor_x}, {self.sensor_y}) mr: {self.manhattan_radius}"
-        return f"({self.sensor_x}, {self.sensor_y}) radius: {self.manhattan_radius} reach: {self.lower_reach}, {self.high_reach}"
-
-
-class Beacon:
-    def __init__(
-        self, sensor_x: int, sensor_y: int, beacon_x: int, beacon_y: int
-    ) -> None:
-        self.sensor_x: int = sensor_x
-        self.sensor_y: int = sensor_y
-        self.beacon_x: int = beacon_x
-        self.beacon_y: int = beacon_y
+        self.x: int = sensor_x
+        self.y: int = sensor_y
         self.manhattan_radius: int = abs(beacon_x - sensor_x) + abs(sensor_y - beacon_y)
 
     def __repr__(self) -> str:
-        return f"({self.beacon_x}, {self.beacon_y}) mr: {self.manhattan_radius}"
+        return f"({self.x}, {self.y}) radius: {self.manhattan_radius}"
 
 
-def merge(intervals: List[List[int]]) -> List[List[int]]:
-    intervals.sort(key=lambda x: x[0])
+def parse(filename: str) -> List[Sensor]:
+    with open(filename, "r") as fp:
+        data: List[str] = fp.read().splitlines()
 
-    merged: List[List[int]] = [intervals[0]]  # 1 <= intervals.length <= 10^
-    for i in range(1, len(intervals)):
-        if intervals[i][0] <= merged[-1][1] or merged[-1][-1] + 1 == intervals[i][0]:
-            merged[-1][0] = min(merged[-1][0], intervals[i][0])
-            merged[-1][1] = max(merged[-1][1], intervals[i][1])
+    expr: str = (
+        r"Sensor at x=(-*\d+), y=(-*\d+): closest beacon is at x=(-*\d+), y=(-*\d+)"
+    )
+
+    sensors: List[Sensor] = []
+    for line in data:
+        result: Optional[Match[str]] = re.match(expr, line)
+        if result:
+            sensor_x: int = int(result.group(1))
+            sensor_y: int = int(result.group(2))
+            beacon_x: int = int(result.group(3))
+            beacon_y: int = int(result.group(4))
+        sensors.append(Sensor(sensor_x, sensor_y, beacon_x, beacon_y))
+
+    return sensors
+
+
+def solve(sensors: List[Sensor], max_dimension: int) -> int:
+    n: int = len(sensors)
+    adjacent: List[Tuple[Sensor, Sensor]] = []
+    for i in range(n):
+        for j in range(i + 1, n):
+            s1: Sensor = sensors[i]
+            s2: Sensor = sensors[j]
+            distance: int = abs(s1.x - s2.x) + abs(s1.y - s2.y)
+            if distance == (s1.manhattan_radius + s2.manhattan_radius + 2):
+                adjacent.append((s1, s2))
+
+    # input has only 2 pairs, however example has multiple matching pairs
+    adjacent = adjacent[:2]
+
+    # determine coordinates of the diagonals
+    left: Sensor
+    right: Sensor
+    sign: int
+    x: int
+    y: int
+    coords: List[Tuple[int, int, int]] = []
+
+    for s1, s2 in adjacent:
+        if s1.x < s2.x:
+            left = s1
+            right = s2
         else:
-            merged.append(intervals[i])
-    return merged
+            left = s2
+            right = s1
+
+        if left.y > right.y:
+            x, y = left.x, left.y - left.manhattan_radius - 1
+            sign = -1
+        else:
+            x, y = left.x, left.y + left.manhattan_radius + 1
+            sign = 1
+
+        coords.append((x, y, sign))
+
+    (x1, y1, sign1), (x2, y2, sign2) = coords
+
+    # solve intersections of diagonals
+    x = (x1 + sign1 * y1 + x2 + sign2 * y2) // 2
+    y = -(x1 + sign1 * y1 - x2 - sign2 * y2) // 2
+
+    assert 0 <= x <= max_dimension and 0 <= y <= max_dimension
+
+    return (MULTIPLIER * x) + y
 
 
 def solution(filename: str, row: int) -> int:
-    with open(filename, "r") as fp:
-        data: str = fp.read().splitlines()
-
-    expr = r"Sensor at x=(-*\d+), y=(-*\d+): closest beacon is at x=(-*\d+), y=(-*\d+)"
-
-    # parse input and create sensors and beacons dictionaries
-    sensors: Dict[Tuple[int, int], Sensor] = {}
-    beacons: Dict[Tuple[int, int], Sensor] = {}
-    for line in data:
-        result = re.match(expr, line)
-        sensor_x = int(result.group(1))
-        sensor_y = int(result.group(2))
-        beacon_x = int(result.group(3))
-        beacon_y = int(result.group(4))
-
-        sensors[(sensor_x, sensor_y)] = Sensor(sensor_x, sensor_y, beacon_x, beacon_y)
-        beacons[(beacon_x, beacon_y)] = Beacon(sensor_x, sensor_y, beacon_x, beacon_y)
-
-    # count intersections
-    intersections: List[List[int]] = []
-    for (sensor_x, sensor_y), sensor in sensors.items():
-        # print(sensor_x, sensor_y, sensor)
-
-        if sensor.lower_reach <= row <= sensor.high_reach:
-            distance_from_sensor: int = abs(sensor_y - row)
-            reminder_distance: int = sensor.manhattan_radius - distance_from_sensor
-            intersection_length: int = reminder_distance * 2 + 1
-
-            # print(
-            #     f"{distance_from_sensor = } {reminder_distance = } {intersection_length = }"
-            # )
-
-            intersection: List[int] = [
-                sensor_x - reminder_distance,
-                sensor_x + reminder_distance,
-            ]
-            # print(intersection)
-            intersections.append(intersection)
-
-        # print("=" * 50)
-
-    merged_intervals: List[List[int]] = merge(intersections)
-
-    if len(merged_intervals) > 1:
-        print(row, merged_intervals)
-
-    total_intersections: int = sum(
-        [(interval[1] - interval[0] + 1) for interval in merged_intervals]
-    )
-    # print(merged_intervals, total_intersections)
-
-    # substract beacons on the row `row`
-    for (beacon_x, beacon_y), beacon in beacons.items():
-        if beacon_y == row:
-            for start, end in merged_intervals:
-                if start <= beacon_x <= end:
-                    total_intersections -= 1
-    return total_intersections
+    sensors: List[Sensor] = parse(filename)
+    return solve(sensors, row)
 
 
 if __name__ == "__main__":
-    # for row in range(21):
-    #     result: int = solution("./example.txt", row)
-    # print(row, result)  # it should be 26
-
-    for row in range(4_000_001):
-        if row % 10_000 == 0:
-            print(row)
-        result: int = solution("./input.txt", row)
+    print(solution("./example.txt", 20))  # 56000011
+    print(solution("./input.txt", 4_000_000))  # 13622251246513

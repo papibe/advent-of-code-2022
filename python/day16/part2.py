@@ -1,154 +1,141 @@
 import re
-from collections import deque
-from typing import List, Dict, Deque
+from typing import Dict, List, Match, Optional, Tuple
 
-from part1 import Valve, parse
+type AdjacencyMatrix = List[List[int]]
+type ValveIndex = Dict[str, int]
+type Flows = Dict[str, int]
+type State = Tuple[int, int, int]
 
 
-def solve(valves: Dict[str, Valve], max_minutes: int) -> int:
-    minute: int = 0
-    queue: Deque = deque()
-    # queue.append((minute, 0, "AA", "AA", set(["AA"])))
-    queue.append((minute, 0, "AA", "AA", set(["AA"])))
+def parse(filename: str) -> Tuple[AdjacencyMatrix, ValveIndex, Flows]:
+    with open(filename, "r") as file:
+        data: List[str] = file.read().splitlines()
 
-    max_pressure: int = 0
-    history: Dict[str, int] = {"AAAA": 0}
-    # man_history: Dict[str, int] = {"AA": 0}
-    # elephant_history: Dict[str, int] = {"AA": 0}
+    re_fmt: str = r"Valve (\w\w) has flow rate=(\d+); tunnels? leads? to valves? (.*)"
+    flows: Dict[str, int] = {}
+    tunnels: Dict[str, List[str]] = {}
 
-    while queue:
-        minute, current_pressure, man_valve, elephant_valve, opened = queue.popleft()
-        print(minute, man_valve, elephant_valve, current_pressure)
+    for line in data:
+        re_parsed: Optional[Match[str]] = re.match(re_fmt, line)
+        if re_parsed:
+            valve: str = re_parsed.group(1)
+            flow: int = int(re_parsed.group(2))
+            valves: List[str] = [v.strip() for v in re_parsed.group(3).split(",")]
+            flows[valve] = flow
+            tunnels[valve] = valves
 
-        max_pressure = max(max_pressure, current_pressure)
-        if minute >= max_minutes:
-            continue
+    adjacency_matrix: AdjacencyMatrix = [
+        [float("inf")] * len(data) for _ in range(len(data))  # type: ignore
+    ]
 
-        # no valves open now; both walk to next valve
-        for elephant_neighbor in valves[elephant_valve].neighbors:
-            for man_neighbor in valves[man_valve].neighbors:
-                if (
-                    man_neighbor + elephant_neighbor not in history
-                    or current_pressure > history[man_neighbor + elephant_neighbor]
-                ):
-                    if man_neighbor == elephant_neighbor:
-                        continue
+    valve_index: Dict[str, int] = {key: index for index, key in enumerate(flows.keys())}
+    for valve, neighbors in tunnels.items():
+        for nb in neighbors:
+            adjacency_matrix[valve_index[valve]][valve_index[nb]] = 1
+            adjacency_matrix[valve_index[valve]][valve_index[valve]] = 0
 
-                    history[man_neighbor + elephant_neighbor] = current_pressure
-                    history[elephant_neighbor + man_neighbor] = current_pressure
-                    queue.append(
-                        (
-                            minute + 1,
-                            current_pressure,
-                            man_neighbor,
-                            elephant_neighbor,
-                            opened,
-                        )
-                    )
+    return adjacency_matrix, valve_index, flows
 
-        # open elephant valve
-        if valves[elephant_valve].flow > 0 and elephant_valve not in opened:
-            current_pressure += valves[elephant_valve].flow * (max_minutes - minute - 1)
-            new_opened = opened.copy()
-            new_opened.add(elephant_valve)
 
-            # both man and elephant open their valves
-            if (
-                man_valve != elephant_valve
-                and valves[man_valve].flow > 0
-                and man_valve not in opened
-            ):
-                current_pressure += valves[man_valve].flow * (max_minutes - minute - 1)
-                new_opened.add(elephant_valve)
-                # if (
-                #     man_valve + elephant_valve not in history
-                #     or current_pressure > history[man_valve + elephant_valve]
-                # ):
-                history[man_valve + elephant_valve] = current_pressure
-                history[elephant_valve + man_valve] = current_pressure
-                queue.append(
-                    (
-                        minute + 1,
-                        current_pressure,
-                        man_valve,
-                        elephant_valve,
-                        new_opened,
-                    ),
+def floyd_warshall(adjacency_matrix: AdjacencyMatrix) -> None:
+    n: int = len(adjacency_matrix)
+
+    for k in range(n):
+        for i in range(n):
+            for j in range(n):
+                # if dp[i][k] + dp[k][j] < dp[i][j]:
+                #     dp[i][j] = dp[i][k] + dp[k][j]
+                adjacency_matrix[i][j] = min(
+                    adjacency_matrix[i][j],
+                    adjacency_matrix[i][k] + adjacency_matrix[k][j],
                 )
 
-            # not open man valve
-            else:
-                # man walks to next vales
-                for man_neighbor in valves[man_valve].neighbors:
-                    if (
-                        man_neighbor + elephant_valve not in history
-                        or current_pressure > history[man_neighbor + elephant_valve]
-                    ):
-                        if man_neighbor == elephant_valve:
-                            continue
-                        history[man_neighbor + elephant_valve] = current_pressure
-                        history[elephant_valve + man_neighbor] = current_pressure
-                        queue.append(
-                            (
-                                minute + 1,
-                                current_pressure,
-                                man_neighbor,
-                                elephant_valve,
-                                new_opened,
-                            )
-                        )
-        # not open elephant valve
-        else:
-            # open man valve
-            if valves[man_valve].flow > 0 and man_valve not in opened:
-                current_pressure += valves[man_valve].flow * (max_minutes - minute - 1)
-                new_opened = opened.copy()
-                new_opened.add(man_valve)
-                # if minute == 8 and man_valve == "CC":
-                #     print(minute, f"opening1 {man_valve = } {elephant_valve = } {current_pressure = } {history = }")
-                #     print(minute, f"opengin2 {history[man_valve + elephant_neighbor] = }")
 
-                for elephant_neighbor in valves[elephant_valve].neighbors:
-                    if (
-                        man_valve + elephant_neighbor not in history
-                        or current_pressure > history[man_valve + elephant_neighbor]
-                    ):
-                        if minute == 8 and man_valve == "CC":
-                            print(
-                                minute,
-                                f"2opening {man_valve = } {elephant_valve = } {current_pressure = } {history = }",
-                            )
+def trim_valves(
+    am: AdjacencyMatrix,
+    valve_index: Dict[str, int],
+    flows: Dict[str, int],
+) -> Tuple[List[List[int]], Dict[str, int], Dict[str, int]]:
 
-                        if man_valve == elephant_neighbor:
-                            continue
+    valves_with_flow: Dict[str, int] = {
+        valve: flow for valve, flow in flows.items() if flow > 0
+    }
+    valves_with_flow["AA"] = 0
+    new_valve_index: Dict[str, int] = {
+        key: index for index, key in enumerate(valves_with_flow.keys())
+    }
 
-                        history[man_valve + elephant_neighbor] = current_pressure
-                        history[elephant_neighbor + man_valve] = current_pressure
-                        # print(minute, f"opening {man_valve = } {elephant_neighbor = } {current_pressure = } pushed")
-                        queue.append(
-                            (
-                                minute + 1,
-                                current_pressure,
-                                man_valve,
-                                elephant_neighbor,
-                                new_opened,
-                            )
-                        )
+    n: int = len(valves_with_flow)
+    adjacency_matrix: List[List[int]] = [[float("inf")] * n for _ in range(n)]  # type: ignore
 
-    return max_pressure
+    for valve in valves_with_flow:
+        for connecting_valve in valves_with_flow:
+            adjacency_matrix[new_valve_index[valve]][
+                new_valve_index[connecting_valve]
+            ] = am[valve_index[valve]][valve_index[connecting_valve]]
+
+    return adjacency_matrix, new_valve_index, valves_with_flow
 
 
-def solution(filename: str, max_minutes: int) -> int:
-    valves: Dict[Valve] = parse(filename)
-    # for name, valve in valves.items():
-    #     print(valve)
+def solve(
+    am: AdjacencyMatrix,
+    flows: List[int],
+    valve_index: ValveIndex,
+    opened_valves: int,
+    memo: Dict[State, int],
+    max_minutes: int,
+) -> int:
+    def sol(minutes: int, valve: int, opened: int) -> int:
+        if minutes == 0:
+            return 0
 
-    return solve(valves, max_minutes)
+        if (minutes, valve, opened) in memo:
+            return memo[(minutes, valve, opened)]
+
+        max_pressure: int = 0
+        for neighbor, distance in enumerate(am[valve]):
+            if distance <= minutes - 1:
+                neighbor_bit = 1 << neighbor
+                if opened & neighbor_bit == 0:  # not opened
+                    max_pressure = max(
+                        max_pressure,
+                        flows[neighbor] * (minutes - distance - 1)
+                        + sol(minutes - distance - 1, neighbor, opened | neighbor_bit),
+                    )
+
+        memo[(minutes, valve, opened)] = max_pressure
+        return max_pressure
+
+    return sol(max_minutes, valve_index["AA"], opened_valves | (1 << valve_index["AA"]))
+
+
+def solution(filename: str) -> int:
+    adjacency_matrix: AdjacencyMatrix
+    valve_index: ValveIndex
+    flows: Flows
+    adjacency_matrix, valve_index, flows = parse(filename)
+
+    floyd_warshall(adjacency_matrix)
+    adjacency_matrix, new_valve_index, valves_with_flow = trim_valves(
+        adjacency_matrix, valve_index, flows
+    )
+    memo: Dict[State, int] = {}
+    new_flows: List[int] = list(valves_with_flow.values())
+
+    max_team_pressure: int = 0
+    times: int = (1 << len(new_flows)) - 1
+    for bitmask in range(times // 2):
+        max_team_pressure = max(
+            max_team_pressure,
+            solve(adjacency_matrix, new_flows, new_valve_index, bitmask, memo, 26)
+            + solve(
+                adjacency_matrix, new_flows, new_valve_index, bitmask ^ times, memo, 26
+            ),
+        )
+
+    return max_team_pressure
 
 
 if __name__ == "__main__":
-    result: int = solution("./example.txt", 26)
-    print(result)
-
-    # result = solution("./input.txt", 26)
-    # print(result)
+    print(solution("./example.txt"))  # 1707
+    print(solution("./input.txt"))  # 2520

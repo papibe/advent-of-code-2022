@@ -1,7 +1,7 @@
-from enum import Enum
+import itertools
 from collections import deque
-from typing import List, Tuple, Iterator, Dict, Set, Deque
-
+from enum import Enum
+from typing import Callable, Deque, Dict, FrozenSet, Iterator, List, Set, Tuple
 
 _ROCKS = (
     (("@", "@", "@", "@"),),
@@ -27,213 +27,209 @@ _ROCKS = (
     ),
 )
 
-STONE: str = "@"
-ROCKS: List[List] = []
+ROCKS: List[Tuple[int, List[Tuple[int, int]]]] = []
 
-for rock in _ROCKS:
-    rock_coordinates: List = []
+for index, rock in enumerate(_ROCKS):
+    rock_coordinates: List[Tuple[int, int]] = []
     for i, row in enumerate(rock):
         for j, value in enumerate(row):
-            # print(i, j, value, rock[i][j])
-            if value == STONE:
+            if value == "@":
                 rock_coordinates.append((i, j))
-    # print()
-    ROCKS.append(rock_coordinates)
+    ROCKS.append((index, rock_coordinates))
 
 
 class Wind(Enum):
-    left: str = "<"
-    right: str = ">"
+    left = "<"
+    right = ">"
+
+
+def get_wind_from_str(s: str) -> Wind:
+    match s:
+        case "<":
+            return Wind.left
+        case ">":
+            return Wind.right
+        case _:
+            raise RuntimeError("Unknown wind character")
 
 
 class Chamber:
     def __init__(self, width: int) -> None:
-        self.chamber: Set = set()
-        # for i in range(width):
-        #     self.chamber.add((0, i))
+        self.chamber: Set[Tuple[int, int]] = set()
         self.width: int = width
         self.size: int = 0
-        self.size_wit_rock: int = 0
+        self.size_with_rock: int = 0
         self.stable: bool = True
-        self.rock: Set = None
+        self.rock: Set[Tuple[int, int]] = set()
 
-    def __repr__(self) -> str:
-        # return f"{self.chamber = }\n{self.rock = }\n"
-
-        # print(f"{self.size = }")
-        output: List[str] = []
-        for row in range(self.size + self.size_wit_rock - 1, -1, -1):
-            output.append(f"{row:4} ")
-            for col in range(self.width):
-                if (row, col) in self.chamber:
-                    output.append("#")
-                elif self.rock is not None and (row, col) in self.rock:
-                    output.append(STONE)
-                else:
-                    output.append(".")
-            output.append("\n")
-        return "".join(output)
-
-    def add_falling_rock(self, rock: Tuple[Tuple]) -> None:
-
-        # self.rock_row: int = self.size + (3 if self.size == 0 else 4)
+    def add_falling_rock(self, rock: List[Tuple[int, int]]) -> None:
         self.rock_row: int = self.size + 4
         self.rock_col: int = 2
-        self.size_wit_rock: int = self.size + 4 + (4)
+        self.size_with_rock = self.size + 4 + (4)
 
-        # print(f"adding rock: {self.rock_row = } {self.rock_col = }")
-
-        self.rock: Set = set()
         for x, y in rock:
             self.rock.add((self.rock_row + x, self.rock_col + y))
 
-        # print(f"{self.rock = }")
-
         self.stable = False
 
-    def _move_right(self):
-        new_rock_position: Set = set()
-        for (row, col) in self.rock:
+    def _move_right(self) -> None:
+        new_rock_position: Set[Tuple[int, int]] = set()
+        for row, col in self.rock:
             if col + 1 >= self.width or (row, col + 1) in self.chamber:
                 return
             new_rock_position.add((row, col + 1))
 
         self.rock = new_rock_position
 
-    def _move_left(self):
-        new_rock_position: Set = set()
-        for (row, col) in self.rock:
+    def _move_left(self) -> None:
+        new_rock_position: Set[Tuple[int, int]] = set()
+        for row, col in self.rock:
             if col - 1 < 0 or (row, col - 1) in self.chamber:
                 return
             new_rock_position.add((row, col - 1))
 
         self.rock = new_rock_position
 
-    # @profile
-    def falldown(self):
-        new_rock_position: Set = set()
-        for (row, col) in self.rock:
+    def fall_down(self) -> None:
+        new_rock_position: Set[Tuple[int, int]] = set()
+        for row, col in self.rock:
             if row - 1 < 1 or (row - 1, col) in self.chamber:
                 self.stabilize()
-                self.trim()
                 return
             new_rock_position.add((row - 1, col))
 
         self.rock = new_rock_position
 
-    def trim(self) -> None:
+    def trim(self) -> FrozenSet[Tuple[int, int]]:
         upper_limit: int = self.size + 1
-        start: Tuple = (upper_limit, 0)
-        queue: Deque = deque([start])
-        visited: Set = {start}
+        start: Tuple[int, int] = (upper_limit, 0)
+        queue: Deque[Tuple[int, int]] = deque([start])
+        visited: Set[Tuple[int, int]] = {start}
 
-        new_chamber: Set = set()
+        new_chamber: Set[Tuple[int, int]] = set()
+        min_row: int = float("inf")  # type: ignore
 
         while queue:
             row, col = queue.popleft()
             if (row, col) in self.chamber:
                 new_chamber.add((row, col))
                 continue
-            for drow, dcol in [(-1, 0), (1, 0), (0, 1), (0, -1)]:
-                if 0 < row + drow <= upper_limit and 0 <= col + dcol < self.width:
-                    if (row + drow, col + dcol) not in visited:
-                        queue.append((row + drow, col + dcol))
-                        visited.add((row + drow, col + dcol))
+
+            for d_row, d_col in [(-1, 0), (1, 0), (0, 1), (0, -1)]:
+                if 0 < row + d_row <= upper_limit and 0 <= col + d_col < self.width:
+                    if (row + d_row, col + d_col) not in visited:
+                        queue.append((row + d_row, col + d_col))
+                        visited.add((row + d_row, col + d_col))
+                        min_row = min(min_row, row + d_row)
 
         self.chamber = new_chamber
 
-    def stabilize(self) -> None:
-        max_row: int = float("-inf")
+        state: Set[Tuple[int, int]] = set()
+        for row, col in new_chamber:
+            state.add((row - min_row, col))
 
-        for (row, col) in self.rock:
+        return frozenset(state)
+
+    def stabilize(self) -> None:
+        max_row: int = float("-inf")  # type: ignore
+
+        for row, col in self.rock:
             max_row = max(max_row, row)
             self.chamber.add((row, col))
 
-        self.rock = None
+        self.rock = set()
         self.size = max(max_row, self.size)
-        self.size_wit_rock: int = max_row
+        self.size_with_rock = max_row
         self.stable = True
 
-    def gas_push(self, wind: str) -> None:
-        wind_mapping: Dict = {Wind.left: self._move_left, Wind.right: self._move_right}
+    def gas_push(self, wind: Wind) -> None:
+        wind_mapping: Dict[Wind, Callable[[], None]] = {
+            Wind.left: self._move_left,
+            Wind.right: self._move_right,
+        }
         wind_mapping[wind]()
 
     def is_stable(self) -> bool:
         return self.stable
 
 
-def rock_generator(rocks_data: Tuple[Tuple]) -> Tuple:
-    counter: int = 0
-    rocks_length: int = len(rocks_data)
-    while True:
-        index: int = counter % rocks_length
-        yield rocks_data[index]
-        counter += 1
+def solve(
+    wind_data: List[Tuple[int, Wind]], chamber: Chamber, number_of_rocks: int
+) -> int:
 
+    seen_state: Dict[Tuple[int, int, FrozenSet[Tuple[int, int]]], Tuple[int, int]] = {}
+    min_chamber_state_size: int = float("inf")  # type: ignore
+    max_chamber_state_size: int = float("-inf")  # type: ignore
 
-def wind_generator(wind_str: List[str]) -> Wind:
-    counter: int = 0
-    wind_length: int = len(wind_str)
-    while True:
-        index: int = counter % wind_length
-        yield Wind.left if wind_str[index] == "<" else Wind.right
-        counter += 1
+    gas: Iterator[Tuple[int, Wind]] = itertools.cycle(wind_data)
+    rocks: Iterator[Tuple[int, List[Tuple[int, int]]]] = itertools.cycle(ROCKS)
 
-
-# @profile
-def solve(wind_data: List, chamber: Chamber, number_of_rocks: int) -> int:
-
-    gas: Iterator = wind_generator(wind_data)
-    rocks: Iterator = rock_generator(ROCKS)
-
-    for nrocks in range(1, number_of_rocks + 1):
-        rock = next(rocks)
+    current_number_of_rocks: int = 0
+    while current_number_of_rocks < number_of_rocks:
+        rock_index, rock = next(rocks)
         chamber.add_falling_rock(rock)
-        # print("add rock")
-        # print(chamber)
 
         while not chamber.is_stable():
-            wind: str = next(gas)
-            # print(wind)
+            wind_index, wind = next(gas)
             chamber.gas_push(wind)
-            # print(chamber)
-            chamber.falldown()
-            # print("down")
-            # print(chamber)
+            chamber.fall_down()
 
-        # print(nrocks, chamber.size, len(chamber.chamber))
+        chamber_state: FrozenSet[Tuple[int, int]] = chamber.trim()
+        min_chamber_state_size = min(min_chamber_state_size, len(chamber_state))
+        max_chamber_state_size = max(max_chamber_state_size, len(chamber_state))
+        state: Tuple[int, int, FrozenSet[Tuple[int, int]]] = (
+            rock_index,
+            wind_index,
+            chamber_state,
+        )
+        if state in seen_state:
+            break
 
-        # if nrocks % 100_000 == 0:
-        #     print(nrocks, chamber.size, len(chamber.chamber))
+        seen_state[state] = (current_number_of_rocks, chamber.size)
 
-    # for row in range(len(chamber.chamber) - 1, len(chamber.chamber) - 10, -1):
-    #     print(chamber.chamber[row])
+        current_number_of_rocks += 1
 
-    # print(chamber)
+    previous_number_of_rocks, previous_chamber_size = seen_state[state]
+    times: int = (number_of_rocks - current_number_of_rocks) // (
+        current_number_of_rocks - previous_number_of_rocks
+    )
+    rocks_piles: int = (current_number_of_rocks - previous_number_of_rocks) * times
+    size_reached: int = (chamber.size - previous_chamber_size) * times
+    reminding_rocks: int = number_of_rocks - rocks_piles - current_number_of_rocks - 1
 
-    return chamber.size
+    current_number_of_rocks = 0
+    while current_number_of_rocks < reminding_rocks:
+        rock_index, rock = next(rocks)
+        chamber.add_falling_rock(rock)
+
+        while not chamber.is_stable():
+            wind_index, wind = next(gas)
+            chamber.gas_push(wind)
+            chamber.fall_down()
+
+        current_number_of_rocks += 1
+
+    return chamber.size + size_reached
 
 
-def parse(filename: str):
+def parse(filename: str) -> List[Tuple[int, Wind]]:
     with open(filename, "r") as fp:
-        raw_data: List = fp.read().splitlines()
-    data: List[str] = [char for char in raw_data[0]]
+        raw_data: str = fp.read().strip()
+
+    data: List[Tuple[int, Wind]] = []
+    for index, char in enumerate(raw_data):
+        data.append((index, get_wind_from_str(char)))
+
     return data
 
 
 def solution(filename: str, number_of_rocks: int) -> int:
-    wind_data: List[str] = parse(filename)
+    wind_data: List[Tuple[int, Wind]] = parse(filename)
     chamber: Chamber = Chamber(7)
 
     return solve(wind_data, chamber, number_of_rocks)
 
 
 if __name__ == "__main__":
-    # result: int = solution("./example.txt", 1_000_000_000_000)
-    # result: int = solution("./example.txt", 2022)
-    result: int = solution("./example.txt", 100_000)
-    # result: int = solution("./example.txt", 10)
-    print(result)
-
-    # result = solution("./input.txt", 2022)
-    # print(result)
+    print(solution("./example.txt", 1_000_000_000_000))  # 1514285714288
+    print(solution("./input.txt", 1_000_000_000_000))  # 1560932944615

@@ -1,28 +1,39 @@
-from typing import List, Tuple, Dict, Set
+from collections import namedtuple
+from typing import List, Set, Tuple
+
+Point = namedtuple("Point", ["x", "y", "z"])
 
 
-def parse(filename: str) -> List[Tuple[int, int, int]]:
+def parse(filename: str) -> List[Point]:
     with open(filename) as fp:
         data: List[str] = fp.read().splitlines()
 
-    return [tuple(map(int, coords.split(","))) for coords in data]
+    points: List[Point] = []
+    for coord in data:
+        coord_points: List[str] = coord.split(",")
+        x: int = int(coord_points[0])
+        y: int = int(coord_points[1])
+        z: int = int(coord_points[2])
+        points.append(Point(x, y, z))
+
+    return points
 
 
-def neighbors(coord: Tuple[int, int, int]) -> List[Tuple[int, int, int]]:
-    x, y, z = coord
-    neighbors: List = [
-        (x, y, z, x + 1, y, z + 1),  # lower
-        (x, y + 1, z, x + 1, y + 1, z + 1),  # upper
-        (x, y, z, x, y + 1, z + 1),  # left
-        (x + 1, y, z, x + 1, y + 1, z + 1),  # right
-        (x, y, z + 1, x + 1, y + 1, z + 1),  # front
-        (x, y, z, x + 1, y + 1, z),  # back
+def neighbors(point: Tuple[int, int, int]) -> List[Point]:
+    x, y, z = point
+    neighbors: List[Point] = [
+        Point(x, y - 0.5, z),  # lower
+        Point(x, y + 0.5, z),  # upper
+        Point(x - 0.5, y, z),  # left
+        Point(x + 0.5, y, z),  # right
+        Point(x, y, z + 0.5),  # front
+        Point(x, y, z - 0.5),  # back
     ]
     return neighbors
 
 
-def solve(cubes: List[Tuple[int, int, int]]) -> int:
-    surfaces: Set = set()
+def solve(cubes: List[Point]) -> int:
+    surfaces: Set[Point] = set()
 
     for cube in cubes:
         for neighbor in neighbors(cube):
@@ -35,16 +46,11 @@ def solve(cubes: List[Tuple[int, int, int]]) -> int:
 
 
 def solution(filename: str) -> int:
-    cubes: List[Tuple[int, int, int]] = parse(filename)
+    cubes: List[Point] = parse(filename)
     return solve(cubes)
 
 
 if __name__ == "__main__":
-    result: int = solution("./data/example1.txt")
-    print(result)  # it should be 10
-
-    result = solution("./data/example2.txt")
-    print(result)  # it should be 64
-
-    result = solution("./data/input.txt")
-    print(result)
+    print(solution("./data/example1.txt"))  # 10
+    print(solution("./data/example2.txt"))  # 64
+    print(solution("./data/input.txt"))  # 3326

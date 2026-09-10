@@ -1,109 +1,118 @@
-from collections import deque
-from typing import List, Tuple, Dict, Set, Union, Deque
+from collections import deque, namedtuple
+from typing import Deque, List, Set
 
-Point = Tuple[int, int, int]
+Point = namedtuple("Point", ["x", "y", "z"])
 
 
 def parse(filename: str) -> List[Point]:
     with open(filename) as fp:
         data: List[str] = fp.read().splitlines()
 
-    return [tuple(map(int, coords.split(","))) for coords in data]
+    points: List[Point] = []
+    for coord in data:
+        coord_points: List[str] = coord.split(",")
+        x: int = int(coord_points[0])
+        y: int = int(coord_points[1])
+        z: int = int(coord_points[2])
+        points.append(Point(x, y, z))
+
+    return points
 
 
-def neighbors(coord: Point) -> List[Point]:
+def neighbor_surfaces(coord: Point) -> List[Point]:
     x, y, z = coord
-    neighbors: List = [
-        (x, y - 0.5, z),  # lower
-        (x, y + 0.5, z),  # upper
-        (x - 0.5, y, z),  # left
-        (x + 0.5, y, z),  # right
-        (x, y, z + 0.5),  # front
-        (x, y, z - 0.5),  # back
+    neighbors: List[Point] = [
+        Point(x, y - 0.5, z),  # lower
+        Point(x, y + 0.5, z),  # upper
+        Point(x - 0.5, y, z),  # left
+        Point(x + 0.5, y, z),  # right
+        Point(x, y, z + 0.5),  # front
+        Point(x, y, z - 0.5),  # back
     ]
     return neighbors
 
 
-def sneighbors(coord: Point) -> List[Point]:
+def neighbor_points(coord: Point) -> List[Point]:
     x, y, z = coord
-    neighbors: List = [
-        (x, y - 1, z),  # lower
-        (x, y + 1, z),  # upper
-        (x - 1, y, z),  # left
-        (x + 1, y, z),  # right
-        (x, y, z + 1),  # front
-        (x, y, z - 1),  # back
+    neighbors: List[Point] = [
+        Point(x, y - 1, z),  # lower
+        Point(x, y + 1, z),  # upper
+        Point(x - 1, y, z),  # left
+        Point(x + 1, y, z),  # right
+        Point(x, y, z + 1),  # front
+        Point(x, y, z - 1),  # back
     ]
     return neighbors
-
-
-def is_external(
-    surface: Point, surfaces: List[Point], min_point: Point, max_point: Point
-) -> bool:
-    # queue: Deque = deque([surface])
-    queue: Deque = deque()
-    queue.append(surface)
-    visited: Set = {surface}
-
-    # print(queue, visited)
-
-    while queue:
-        face: Point = queue.popleft()
-
-        if face in surfaces:
-            # print(face, "on surfaces")
-            continue
-
-        if (
-            face[0] < min_point[0]
-            or face[1] < min_point[1]
-            or face[2] < min_point[2]
-            or face[0] > max_point[0]
-            or face[1] > max_point[1]
-            or face[2] > max_point[2]
-        ):
-            # print(face, "is out")
-            return True
-
-        for neighbor in sneighbors(face):
-            if neighbor not in visited:
-                queue.append(neighbor)
-                visited.add(neighbor)
-
-    # print(surface, "is internal")
-    return False
 
 
 def solve(cubes: List[Point]) -> int:
-    surfaces: Set = set()
-    min_point = [float("inf"), float("inf"), float("inf")]
-    max_point = [float("-inf"), float("-inf"), float("-inf")]
+    surfaces: Set[Point] = set()
+    min_x: int = float("inf")  # type: ignore
+    min_y: int = float("inf")  # type: ignore
+    min_z: int = float("inf")  # type: ignore
+
+    max_x: int = float("-inf")  # type: ignore
+    max_y: int = float("-inf")  # type: ignore
+    max_z: int = float("-inf")  # type: ignore
 
     for cube in cubes:
         x, y, z = cube
 
-        min_point = [min(min_point[0], x), min(min_point[1], y), min(min_point[2], z)]
-        max_point = [max(max_point[0], x), max(max_point[1], y), max(max_point[2], z)]
+        min_x = min(min_x, x)
+        min_y = min(min_y, y)
+        min_z = min(min_z, z)
+        max_x = max(max_x, x)
+        max_y = max(max_y, y)
+        max_z = max(max_z, z)
 
-        for neighbor in neighbors(cube):
+        for neighbor in neighbor_surfaces(cube):
             if neighbor in surfaces:
                 surfaces.remove(neighbor)
             else:
                 surfaces.add(neighbor)
 
-    # print(min_point, max_point)
+    # adjust limits
+    min_x -= 1
+    min_y -= 1
+    min_z -= 1
+    max_x += 1
+    max_y += 1
+    max_z += 1
 
-    internal_surfaces: Set = set()
-    for surface in surfaces:
-        for neighbor in sneighbors(surface):
-            if is_external(neighbor, surfaces, min_point, max_point):
-                break
-        else:
-            internal_surfaces.add(surface)
+    # BFS setup
+    start: Point = Point(min_x, min_y, min_z)
+    queue: Deque[Point] = deque([start])
+    visited: Set[Point] = set([start])
 
-    print(len(surfaces), len(internal_surfaces))
+    air: Set[Point] = set()
 
-    return len(surfaces) - len(internal_surfaces)
+    # BFS
+    while queue:
+        x, y, z = coord = queue.popleft()
+
+        if coord in cubes:
+            continue
+
+        air.add(coord)
+
+        for neighbor in neighbor_points(coord):
+            new_x, new_y, new_z = neighbor
+            if (
+                min_x <= new_x <= max_x
+                and min_y <= new_y <= max_y
+                and min_z <= new_z <= max_z
+            ):
+                if neighbor not in visited:
+                    queue.append(neighbor)
+                    visited.add(neighbor)
+
+    external_surface: Set[Point] = set()
+    for cube in air:
+        for neighbor in neighbor_surfaces(cube):
+            if neighbor in surfaces:
+                external_surface.add(neighbor)
+
+    return len(external_surface)
 
 
 def solution(filename: str) -> int:
@@ -112,14 +121,5 @@ def solution(filename: str) -> int:
 
 
 if __name__ == "__main__":
-    result: int = solution("./data/example1.txt")
-    print(result)  # it should be 10
-
-    result = solution("./data/example2.txt")
-    print(result)  # it should be 58
-
-    result = solution("./data/example3.txt")
-    print(result)  # it should be 30
-
-    result = solution("./data/input.txt")
-    print(result)
+    print(solution("./data/example2.txt"))  # 58
+    print(solution("./data/input.txt"))  # 1996
